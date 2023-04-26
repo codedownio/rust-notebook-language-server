@@ -4,7 +4,7 @@
 
 module Transform.ClientNot where
 
-import Control.Lens hiding ((:>), List)
+import Control.Lens hiding ((:>), (<.>), List)
 import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Reader
@@ -12,14 +12,18 @@ import Data.Aeson as A
 import Data.Map as M
 import Data.String.Interpolate
 import Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.Text.Rope as Rope
 import Data.Time
 import Language.LSP.Notebook
 import Language.LSP.Transformer
 import Language.LSP.Types
 import Language.LSP.Types.Lens as Lens
+import System.FilePath
+import Transform.Common
 import Transform.ServerRsp.Hover (mkDocRegex)
 import Transform.Util
+import UnliftIO.Directory
 import UnliftIO.MVar
 
 
@@ -37,24 +41,34 @@ transformClientNot meth msg = do
 transformClientNot' :: (TransformerMonad n) => ClientNotMethod m -> MessageParams m -> n (MessageParams m)
 
 transformClientNot' STextDocumentDidOpen params = whenNotebook params $ \u -> do
-  let ls = Rope.fromText (params ^. (textDocument . text))
+  let t = params ^. (textDocument . text)
+  let ls = Rope.fromText t
   let (ls', transformer' :: RustNotebookTransformer) = project transformerParams ls
   TransformerState {..} <- ask
-  newUri <- addExtensionToUri ".hs" u
-  referenceRegex <- case uriToFilePath newUri of
-    Just s -> pure $ mkDocRegex (T.pack s)
-    Nothing -> do
-      logWarnN [i|Couldn't convert URI to file path: '#{newUri}'|]
-      pure $ mkDocRegex (getUri newUri)
+  (newPath, referenceRegex) <- do
+    identifier <- makeUUID' 15
+    let path = transformerShadowDir </> "src" </> identifier <.> "rs"
+
+    newPath <- do
+      createDirectoryIfMissing True (takeDirectory path)
+      liftIO $ T.writeFile path t
+      return path
+
+    pure (newPath, mkDocRegex (T.pack (identifier <.> "rs")))
+
+  let newUri = filePathToUri newPath
 
   modifyMVar_ transformerDocuments $ \x -> return $! M.insert (getUri u) (
     DocumentState {
-        transformer = transformer',
-        curLines = ls,
-        origUri = u,
-        newUri = newUri,
-        referenceRegex = referenceRegex
+        transformer = transformer'
+        , curLines = ls
+        , origUri = u
+        , newUri = newUri
+        , newPath = newPath
+        , referenceRegex = referenceRegex
         }) x
+
+  updateLibRs
 
   return $ params
          & set (textDocument . text) (Rope.toText ls')
@@ -72,6 +86,7 @@ transformClientNot' STextDocumentDidClose params = whenNotebook params $ \u -> d
   newUri <- case maybeDocumentState of
     Just (DocumentState {..}) -> pure newUri
     Nothing -> addExtensionToUri ".hs" u -- The client shouldn't be closing a non-open doc
+  updateLibRs
   return $ params
          & set (textDocument . uri) newUri
 

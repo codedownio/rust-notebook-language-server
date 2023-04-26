@@ -26,6 +26,7 @@ dependencies:
 - optparse-applicative
 - pcre-light
 - process
+- random
 - regex-base
 - regex-pcre-builtin
 - retry

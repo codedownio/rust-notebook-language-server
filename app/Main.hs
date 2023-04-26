@@ -10,6 +10,8 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.IO.Unlift
+import Control.Monad.Logger
+import Control.Monad.Reader
 import Data.Aeson as A hiding (Options)
 import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Lazy as BL
@@ -21,6 +23,7 @@ import qualified Data.Text.Encoding as T
 import Language.LSP.Types hiding (FromServerMessage'(..), FromServerMessage, FromClientMessage'(..), FromClientMessage, parseClientMessage, parseServerMessage, LookupFunc)
 import qualified Language.LSP.Types.Lens as Lens
 import Options.Applicative
+import System.Exit
 import System.IO
 import System.Posix.Signals
 import UnliftIO.Async
@@ -28,6 +31,7 @@ import UnliftIO.Concurrent
 import UnliftIO.Directory
 import UnliftIO.Exception
 import UnliftIO.Process
+import UnliftIO.Temporary (withSystemTempDirectory)
 
 import Transform.ClientNot
 import Transform.ClientReq
@@ -37,18 +41,16 @@ import Transform.ServerReq
 import Transform.ServerRsp
 import Transform.Util
 
-import Streams
-import RequestMap
 import Parsing
 import Process
-import Control.Monad.Logger
-import Control.Monad.Reader
-import System.Exit
+import RequestMap
+import Streams
 
 
 data Options = Options {
   optWrappedLanguageServer :: Maybe FilePath
-  , optHlsArgs :: Maybe Text
+  , optWrappedArgs :: Maybe Text
+  , optShadowDirTemplate :: Maybe FilePath
   , optLogLevel :: Maybe Text
   }
 
@@ -56,6 +58,7 @@ options :: Parser Options
 options = Options
   <$> optional (strOption (long "wrapped-server" <> help "Wrapped rust-analyzer binary"))
   <*> optional (strOption (long "wrapped-args" <> help "Extra arguments to rust-analyzer"))
+  <*> optional (strOption (long "shadow-dir-template" <> help "Template for making a shadow project directory"))
   <*> optional (strOption (long "log-level" <> help "Log level (debug, info, warn, error)"))
 
 fullOpts :: ParserInfo Options
@@ -71,8 +74,8 @@ main = do
     Nothing -> throwIO $ userError [i|Couldn't find rust-analyzer binary.|]
     Just x -> return x
 
-  (Just hlsIn, Just hlsOut, Just hlsErr, p) <- createProcess (
-    (proc wrappedLanguageServerPath (maybe [] (fmap T.unpack . T.words) optHlsArgs)) {
+  (Just wrappedIn, Just wrappedOut, Just wrappedErr, p) <- createProcess (
+    (proc wrappedLanguageServerPath (maybe [] (fmap T.unpack . T.words) optWrappedArgs)) {
         close_fds = True
         , create_group = True
         , std_in = CreatePipe
@@ -83,8 +86,8 @@ main = do
   hSetBuffering stdin NoBuffering -- TODO: LineBuffering here and below?
   hSetEncoding  stdin utf8
 
-  hSetBuffering hlsOut NoBuffering
-  hSetEncoding  hlsOut utf8
+  hSetBuffering wrappedOut NoBuffering
+  hSetEncoding  wrappedOut utf8
 
   hSetBuffering stdout LineBuffering
   hSetEncoding  stdout utf8
@@ -96,8 +99,6 @@ main = do
   serverReqMap <- newMVar newServerRequestMap
 
   -- TODO: switch to using pickFromIxMap or some other way to remove old entries
-
-  transformerState <- newTransformerState
 
   logLevel <- case optLogLevel of
     Nothing -> return LevelInfo
@@ -131,19 +132,31 @@ main = do
         , _message = T.decodeUtf8 $ fromLogStr msg
         }
 
-  flip runLoggingT logFn $ filterLogger logFilterFn $ flip runReaderT transformerState $
-    withAsync (readHlsOut clientReqMap serverReqMap hlsOut sendToStdout) $ \_hlsOutAsync ->
-      withAsync (readHlsErr hlsErr) $ \_hlsErrAsync ->
-        withAsync (forever $ handleStdin hlsIn clientReqMap serverReqMap) $ \_stdinAsync -> do
-          waitForProcess p >>= \case
-            ExitFailure n -> logErrorN [i|rust-analyzer subprocess exited with code #{n}|]
-            ExitSuccess -> logInfoN [i|rust-analyzer subprocess exited successfully|]
+  withMaybeShadowDir optShadowDirTemplate $ \maybeShadowDir -> do
+    transformerState <- newTransformerState maybeShadowDir
 
+    flip runLoggingT logFn $ filterLogger logFilterFn $ flip runReaderT transformerState $
+      withAsync (readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout) $ \_wrappedOutAsync ->
+        withAsync (readWrappedErr wrappedErr) $ \_wrappedErrAsync ->
+          withAsync (forever $ handleStdin wrappedIn clientReqMap serverReqMap) $ \_stdinAsync -> do
+            waitForProcess p >>= \case
+              ExitFailure n -> logErrorN [i|rust-analyzer subprocess exited with code #{n}|]
+              ExitSuccess -> logInfoN [i|rust-analyzer subprocess exited successfully|]
+
+
+withMaybeShadowDir :: MonadUnliftIO m => Maybe FilePath -> (FilePath -> m a) -> m a
+withMaybeShadowDir maybeTemplate cb = withSystemTempDirectory "rust-analyzer-shadow-home" $ \dir -> do
+  case maybeTemplate of
+    Just template -> do
+      void $ readCreateProcess ((proc "cp" ["-r", "./.", dir]) { cwd = Just template }) ""
+      void $ readCreateProcess (proc "chmod" ["-R", "u+w", dir]) ""
+    Nothing -> return ()
+  cb dir
 
 handleStdin :: (
   MonadLoggerIO m, MonadReader TransformerState m, MonadUnliftIO m, MonadFail m
   ) => Handle -> MVar ClientRequestMap -> MVar ServerRequestMap -> m ()
-handleStdin hlsIn clientReqMap serverReqMap = do
+handleStdin wrappedIn clientReqMap serverReqMap = do
   (A.eitherDecode <$> liftIO (parseStream stdin)) >>= \case
     Left err -> logErr [i|Couldn't decode incoming message: #{err}|]
     Right (x :: A.Value) -> do
@@ -151,24 +164,24 @@ handleStdin hlsIn clientReqMap serverReqMap = do
       case A.parseEither (parseClientMessage (lookupServerId m)) x of
         Left err -> do
           logErr [i|Couldn't decode incoming message: #{err}|]
-          liftIO $ writeToHandle hlsIn (A.encode x)
+          liftIO $ writeToHandle wrappedIn (A.encode x)
         Right (FromClientRsp meth msg) -> do
-          transformClientRsp meth msg >>= liftIO . writeToHandle hlsIn . A.encode
+          transformClientRsp meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
         Right (FromClientReq meth msg) -> do
           let msgId = msg ^. Lens.id
           modifyMVar_ clientReqMap $ \m -> case updateClientRequestMap m msgId (SMethodAndParams meth (msg ^. Lens.params)) of
             Just m' -> return m'
             Nothing -> return m
-          transformClientReq meth msg >>= liftIO . writeToHandle hlsIn . A.encode
+          transformClientReq meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
         Right (FromClientNot meth msg) ->
-          transformClientNot meth msg >>= liftIO . writeToHandle hlsIn . A.encode
+          transformClientNot meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
 
-readHlsOut :: (
+readWrappedOut :: (
   MonadUnliftIO m, MonadLoggerIO m, MonadReader TransformerState m, MonadFail m
   ) => MVar ClientRequestMap -> MVar ServerRequestMap -> Handle -> (forall a. ToJSON a => a -> m ()) -> m b
-readHlsOut clientReqMap serverReqMap hlsOut sendToStdout = forever $ do
-  (A.eitherDecode <$> liftIO (parseStream hlsOut)) >>= \case
-    Left err -> logErr [i|Couldn't decode HLS output: #{err}|]
+readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
+  (A.eitherDecode <$> liftIO (parseStream wrappedOut)) >>= \case
+    Left err -> logErr [i|Couldn't decode wrapped output: #{err}|]
     Right (x :: A.Value) -> do
       m <- readMVar clientReqMap
       case A.parseEither (parseServerMessage (lookupClientId m)) x of
@@ -186,10 +199,10 @@ readHlsOut clientReqMap serverReqMap hlsOut sendToStdout = forever $ do
         Right (FromServerRsp meth initialParams msg) ->
           transformServerRsp meth initialParams msg >>= sendToStdout
 
-readHlsErr :: MonadLoggerIO m => Handle -> m ()
-readHlsErr hlsErr = forever $ do
-  line <- liftIO (hGetLine hlsErr)
-  logErrorN [i|(HLS stderr) #{line}|]
+readWrappedErr :: MonadLoggerIO m => Handle -> m ()
+readWrappedErr wrappedErr = forever $ do
+  line <- liftIO (hGetLine wrappedErr)
+  logErrorN [i|(wrapped stderr) #{line}|]
 
 lookupServerId :: ServerRequestMap -> LookupFunc FromServer
 lookupServerId serverReqMap sid = do

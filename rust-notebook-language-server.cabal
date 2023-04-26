@@ -6,8 +6,6 @@ cabal-version: 1.12
 
 name:           rust-notebook-language-server
 version:        0.1.0.0
-license:        BSD3
-license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
@@ -65,6 +63,7 @@ library
     , optparse-applicative
     , pcre-light
     , process
+    , random
     , regex-base
     , regex-pcre-builtin
     , retry
@@ -125,6 +124,7 @@ executable rust-notebook-language-server
     , optparse-applicative
     , pcre-light
     , process
+    , random
     , regex-base
     , regex-pcre-builtin
     , retry
@@ -188,6 +188,7 @@ test-suite rust-notebook-language-server-test
     , optparse-applicative
     , pcre-light
     , process
+    , random
     , regex-base
     , regex-pcre-builtin
     , retry

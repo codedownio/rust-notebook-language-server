@@ -23,6 +23,7 @@ import Language.LSP.Types
 import Language.LSP.Types.Lens as Lens
 import Network.URI
 import System.FilePath
+import qualified System.Random as R
 import UnliftIO.MVar
 
 
@@ -74,16 +75,23 @@ data DocumentState = DocumentState {
   , curLines :: Doc
   , origUri :: Uri
   , newUri :: Uri
+  , newPath :: FilePath
   , referenceRegex :: Regex
   }
 
 data TransformerState = TransformerState {
   transformerDocuments :: MVar (Map Text DocumentState)
+  , transformerInitializeParams :: MVar (Maybe InitializeParams)
+  , transformerShadowDir :: FilePath
   }
 
-newTransformerState :: (MonadIO m) => m TransformerState
-newTransformerState = TransformerState
+-- * Transformers
+
+newTransformerState :: (MonadIO m) => FilePath -> m TransformerState
+newTransformerState shadowDir = TransformerState
   <$> newMVar mempty
+  <*> newMVar Nothing
+  <*> pure shadowDir
 
 lookupTransformer :: TransformerMonad m => Uri -> m (Maybe DocumentState)
 lookupTransformer uri = do
@@ -106,6 +114,21 @@ modifyTransformer def cb uri = do
     Just tx -> do
       (tx', ret) <- cb tx
       return (M.insert (getUri uri) tx' m, ret)
+
+-- * Random identifiers
+
+-- Note: for a UUID to appear in a Kubernetes name, it needs to match this regex
+-- [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
+uuidLetters :: [Char]
+uuidLetters = ['a'..'z'] ++ ['A'..'Z']
+
+numUUIDLetters :: Int
+numUUIDLetters = L.length uuidLetters
+
+makeUUID' :: MonadIO m => Int -> m String
+makeUUID' n = replicateM n ((uuidLetters L.!!) <$> R.randomRIO (0, numUUIDLetters - 1))
+
+-- * Misc
 
 addExtensionToUri :: (MonadLogger m) => String -> Uri -> m Uri
 addExtensionToUri ext u@(Uri t) = case parseURIReference (T.unpack t) of

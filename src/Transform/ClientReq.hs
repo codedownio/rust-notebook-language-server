@@ -9,8 +9,10 @@ import Control.Lens hiding ((:>))
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Logger
+import Control.Monad.Reader
 import Data.Aeson as A
 import Data.String.Interpolate
+import qualified Data.Text as T
 import Data.Time
 import Language.LSP.Notebook
 import Language.LSP.Transformer
@@ -18,6 +20,7 @@ import Language.LSP.Types
 import Language.LSP.Types.Lens as Lens
 import Transform.Common
 import Transform.Util
+import UnliftIO.Concurrent
 
 
 type ClientReqMethod m = SMethod (m :: Method FromClient Request)
@@ -33,6 +36,16 @@ transformClientReq meth msg = do
   return msg'
 
 transformClientReq' :: forall m n. (TransformerMonad n) => ClientReqMethod m -> MessageParams m -> n (MessageParams m)
+
+transformClientReq' SInitialize params = do
+  -- Store the non-modified params, so we can access the unmodified rootUri
+  asks transformerInitializeParams >>= flip modifyMVar_ (\_ -> return $ Just params)
+
+  dir <- asks transformerShadowDir
+  pure $ params
+    & set rootPath (Just (T.pack dir))
+    & set rootUri (Just (filePathToUri dir))
+
 transformClientReq' STextDocumentCodeAction params = whenNotebook params $ withTransformer params $ doTransformUriAndRange @m params
 transformClientReq' STextDocumentCodeLens params = whenNotebook params $ withTransformer params $ doTransformUri @m params
 transformClientReq' STextDocumentCompletion params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
