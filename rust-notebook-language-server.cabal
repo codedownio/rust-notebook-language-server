@@ -55,7 +55,6 @@ library
     , ghc
     , ghc-parser
     , ghc-paths
-    , language-rust
     , lens
     , lens-regex-pcre
     , lsp-types
@@ -116,7 +115,6 @@ executable rust-notebook-language-server
     , ghc
     , ghc-parser
     , ghc-paths
-    , language-rust
     , lens
     , lens-regex-pcre
     , lsp-types
@@ -180,7 +178,6 @@ test-suite rust-notebook-language-server-test
     , ghc
     , ghc-parser
     , ghc-paths
-    , language-rust
     , lens
     , lens-regex-pcre
     , lsp-types
