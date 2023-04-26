@@ -84,7 +84,9 @@ transformClientNot' STextDocumentDidClose params = whenNotebook params $ \u -> d
   TransformerState {..} <- ask
   maybeDocumentState <- modifyMVar transformerDocuments (return . flipTuple . M.updateLookupWithKey (\_ _ -> Nothing) (getUri u))
   newUri <- case maybeDocumentState of
-    Just (DocumentState {..}) -> pure newUri
+    Just (DocumentState {..}) -> do
+      removePathForcibly newPath
+      pure newUri
     Nothing -> addExtensionToUri ".hs" u -- The client shouldn't be closing a non-open doc
   updateLibRs
   return $ params
