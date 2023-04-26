@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           haskell-notebook-language-server
+name:           rust-notebook-language-server
 version:        0.1.0.0
 license:        BSD3
 license-file:   LICENSE
@@ -16,12 +16,7 @@ extra-source-files:
 library
   exposed-modules:
       Language.LSP.Notebook
-      Language.LSP.Notebook.DirectiveToPragma
       Language.LSP.Notebook.ExpressionToDeclaration
-      Language.LSP.Notebook.FrontSifter
-      Language.LSP.Notebook.HeaderTransformer
-      Language.LSP.Notebook.StatementToDeclaration
-      Language.LSP.Notebook.StripDirective
       Language.LSP.Notebook.Util
       Language.LSP.Parse
       Language.LSP.Transformer
@@ -35,7 +30,7 @@ library
       Transform.ServerRsp.Hover
       Transform.Util
   other-modules:
-      Paths_haskell_notebook_language_server
+      Paths_rust_notebook_language_server
   hs-source-dirs:
       src
   default-extensions:
@@ -62,7 +57,7 @@ library
     , ghc
     , ghc-parser
     , ghc-paths
-    , ihaskell
+    , language-rust
     , lens
     , lens-regex-pcre
     , lsp-types
@@ -87,7 +82,7 @@ library
     , vector
   default-language: Haskell2010
 
-executable haskell-notebook-language-server
+executable rust-notebook-language-server
   main-is: Main.hs
   other-modules:
       Parsing
@@ -95,7 +90,7 @@ executable haskell-notebook-language-server
       RequestMap
       Streams
       Test
-      Paths_haskell_notebook_language_server
+      Paths_rust_notebook_language_server
   hs-source-dirs:
       app
   default-extensions:
@@ -123,8 +118,7 @@ executable haskell-notebook-language-server
     , ghc
     , ghc-parser
     , ghc-paths
-    , haskell-notebook-language-server
-    , ihaskell
+    , language-rust
     , lens
     , lens-regex-pcre
     , lsp-types
@@ -138,6 +132,7 @@ executable haskell-notebook-language-server
     , regex-base
     , regex-pcre-builtin
     , retry
+    , rust-notebook-language-server
     , safe
     , string-interpolate
     , text
@@ -149,21 +144,15 @@ executable haskell-notebook-language-server
     , vector
   default-language: Haskell2010
 
-test-suite haskell-notebook-language-server-test
+test-suite rust-notebook-language-server-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Test.BinarySearchVec
       Test.Common
       Test.Hover
-      Test.Transformer.DirectiveToPragma
-      Test.Transformer.ExpressionToDeclaration
-      Test.Transformer.ImportSifter
-      Test.Transformer.PragmaSifter
-      Test.Transformer.StatementToDeclaration
       Test.Transformer.StripDirective
       TestLib.Generators
-      Paths_haskell_notebook_language_server
+      Paths_rust_notebook_language_server
   hs-source-dirs:
       test
   default-extensions:
@@ -193,8 +182,7 @@ test-suite haskell-notebook-language-server-test
     , ghc
     , ghc-parser
     , ghc-paths
-    , haskell-notebook-language-server
-    , ihaskell
+    , language-rust
     , lens
     , lens-regex-pcre
     , lsp-types
@@ -208,6 +196,7 @@ test-suite haskell-notebook-language-server-test
     , regex-base
     , regex-pcre-builtin
     , retry
+    , rust-notebook-language-server
     , safe
     , sandwich
     , sandwich-quickcheck

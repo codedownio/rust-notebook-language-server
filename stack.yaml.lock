@@ -15,6 +15,17 @@ packages:
   original:
     commit: 600d2c4614266e8412cd3aa64e08f47b7060d4c2
     git: https://github.com/codedownio/myers-diff.git
+- completed:
+    name: language-rust
+    pantry-tree:
+      sha256: 6d2530e2338f243146042f0a9464dd62ae8027128b652b3119434c0c06fe3346
+      size: 3549
+    sha256: 1423a6af56514a8c19b968c59ae48367396580edca19da8a90b8ae01da3685c9
+    size: 135667
+    url: https://github.com/harpocrates/language-rust/archive/9d509c450d009cc99f1180b3f2f30247dfb1cfce.tar.gz
+    version: 0.2.0.27
+  original:
+    url: https://github.com/harpocrates/language-rust/archive/9d509c450d009cc99f1180b3f2f30247dfb1cfce.tar.gz
 snapshots:
 - completed:
     sha256: 6d1532d40621957a25bad5195bfca7938e8a06d923c91bc52aa0f3c41181f2d4

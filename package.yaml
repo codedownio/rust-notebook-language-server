@@ -1,4 +1,4 @@
-name:                haskell-notebook-language-server
+name:                rust-notebook-language-server
 version:             0.1.0.0
 
 extra-source-files:
@@ -15,7 +15,7 @@ dependencies:
 - ghc
 - ghc-parser
 - ghc-paths
-- ihaskell
+- language-rust
 - lens
 - lens-regex-pcre
 - lsp-types
@@ -58,7 +58,7 @@ library:
   source-dirs: src
 
 executables:
-  haskell-notebook-language-server:
+  rust-notebook-language-server:
     main: Main.hs
     source-dirs:
     - app
@@ -69,10 +69,10 @@ executables:
     - -O2
     - -W
     dependencies:
-    - haskell-notebook-language-server
+    - rust-notebook-language-server
 
 tests:
-  haskell-notebook-language-server-test:
+  rust-notebook-language-server-test:
     main: Main.hs
     source-dirs:
     - test
@@ -84,7 +84,7 @@ tests:
     - -W
     dependencies:
     - exceptions
-    - haskell-notebook-language-server
+    - rust-notebook-language-server
     - QuickCheck
     - sandwich
     - sandwich-quickcheck

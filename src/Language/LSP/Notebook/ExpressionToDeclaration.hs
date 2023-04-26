@@ -12,7 +12,6 @@ import Data.Set as Set
 import Data.String.Interpolate
 import Data.Text (Text)
 import qualified Data.Text as T
-import IHaskell.Eval.Parser
 import Language.Haskell.GHC.Parser as GHC
 import Language.LSP.Notebook.Util
 import Language.LSP.Parse
@@ -47,30 +46,30 @@ instance Transformer ExpressionToDeclaration where
   type Params ExpressionToDeclaration = EDParams
 
   project :: Params ExpressionToDeclaration -> Doc -> (Doc, ExpressionToDeclaration)
-  project (EDParams {..}) (docToList -> ls) = (listToDoc $ go 0 (zip ls [0 ..]) exprIndices, ExpressionToDeclaration (Set.fromList $ fromIntegral <$> mconcat exprIndices))
-    where
-      go :: Int -> [(Text, Int)] -> [[Int]] -> [Text]
-      go _ [] _ = []
-      go _ xs [] = fmap fst xs
-      go _ _ ([]:_) = error "Empty group"
-      go counter ((l, i):xs) (group@(i1:is):remainingGroups)
-        | i == i1 = let
-            prefix = "expr" <> paddedNumber <> " = "
-            paddedNumber = T.replicate numZerosNeeded "0" <> T.pack (show counter)
-            numZerosNeeded = numberPadding - L.length (show counter)
-            prefixLen = 4 + numberPadding + 3
+  project (EDParams {..}) (docToList -> ls) = undefined -- -- (listToDoc $ go 0 (zip ls [0 ..]) exprIndices, ExpressionToDeclaration (Set.fromList $ fromIntegral <$> mconcat exprIndices))
+    -- where
+    --   go :: Int -> [(Text, Int)] -> [[Int]] -> [Text]
+    --   go _ [] _ = []
+    --   go _ xs [] = fmap fst xs
+    --   go _ _ ([]:_) = error "Empty group"
+    --   go counter ((l, i):xs) (group@(i1:is):remainingGroups)
+    --     | i == i1 = let
+    --         prefix = "expr" <> paddedNumber <> " = "
+    --         paddedNumber = T.replicate numZerosNeeded "0" <> T.pack (show counter)
+    --         numZerosNeeded = numberPadding - L.length (show counter)
+    --         prefixLen = 4 + numberPadding + 3
 
-            (extraLinesToProcess, remainingLines) = L.splitAt (L.length is) xs
-            blankPadding = T.replicate prefixLen " "
-            extraLines = fmap ((blankPadding <>) . fst) extraLinesToProcess
+    --         (extraLinesToProcess, remainingLines) = L.splitAt (L.length is) xs
+    --         blankPadding = T.replicate prefixLen " "
+    --         extraLines = fmap ((blankPadding <>) . fst) extraLinesToProcess
 
-            in
-              (prefix <> l) : extraLines <> go (counter + 1) remainingLines remainingGroups
-        | otherwise = l : go counter xs (group:remainingGroups)
+    --         in
+    --           (prefix <> l) : extraLines <> go (counter + 1) remainingLines remainingGroups
+    --     | otherwise = l : go counter xs (group:remainingGroups)
 
-      exprIndices = [getLinesStartingAt t (GHC.line locatedCodeBlock - 1)
-                    | locatedCodeBlock@(unloc -> Expression t) <- parseCodeString (T.unpack (T.intercalate "\n" ls))
-                    , not (looksLikeTemplateHaskell t)]
+    --   exprIndices = [getLinesStartingAt t (GHC.line locatedCodeBlock - 1)
+    --                 | locatedCodeBlock@(unloc -> Expression t) <- parseCodeString (T.unpack (T.intercalate "\n" ls))
+    --                 , not (looksLikeTemplateHaskell t)]
 
   transformPosition :: Params ExpressionToDeclaration -> ExpressionToDeclaration -> Position -> Maybe Position
   transformPosition (EDParams {..}) (ExpressionToDeclaration affectedLines) (Position l c)

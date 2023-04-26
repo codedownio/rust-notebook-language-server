@@ -1,14 +1,19 @@
 
 module Language.LSP.Parse (
-  parseCodeString
+
   ) where
 
-import GHC
-import qualified GHC.Paths
-import IHaskell.Eval.Parser
-import Language.Haskell.GHC.Parser as GHCParser
-import System.IO.Unsafe (unsafePerformIO)
+import Data.Function
+import Data.String.Interpolate
+import Language.Rust.Parser
+import Language.Rust.Syntax
 
 
-parseCodeString :: String -> [GHCParser.Located CodeBlock]
-parseCodeString = unsafePerformIO . runGhc (Just GHC.Paths.libdir) . parseString
+parsed1 = inputStreamFromString "fn main () { println!(\"Hello world!\"); }"
+        & parse' @(SourceFile Span)
+
+parsed2 = inputStreamFromString [i|println!("Hello world");|]
+        & parse' @(SourceFile Span)
+
+parsed3 = inputStreamFromString [i|let mut message = "Hello ".to_owned();|]
+        & parse' @(SourceFile Span)
