@@ -54,21 +54,21 @@ data Options = Options {
 
 options :: Parser Options
 options = Options
-  <$> optional (strOption (long "wrapped-hls" <> help "Wrapped haskell-language-server binary"))
-  <*> optional (strOption (long "hls-args" <> help "Extra arguments to haskell-language-server"))
+  <$> optional (strOption (long "wrapped-server" <> help "Wrapped rust-analyzer binary"))
+  <*> optional (strOption (long "wrapped-args" <> help "Extra arguments to rust-analyzer"))
   <*> optional (strOption (long "log-level" <> help "Log level (debug, info, warn, error)"))
 
 fullOpts :: ParserInfo Options
 fullOpts = info (options <**> helper) (
-  fullDesc <> progDesc "Run a wrapped haskell-language-server with notebook support"
+  fullDesc <> progDesc "Run a wrapped rust-analyzer with notebook support"
   )
 
 main :: IO ()
 main = do
   Options {..} <- execParser fullOpts
 
-  wrappedLanguageServerPath <- (pure optWrappedLanguageServer <|> findExecutable "haskell-language-server-wrapper") >>= \case
-    Nothing -> throwIO $ userError [i|Couldn't find haskell-language-server binary.|]
+  wrappedLanguageServerPath <- (pure optWrappedLanguageServer <|> findExecutable "rust-analyzer-wrapper") >>= \case
+    Nothing -> throwIO $ userError [i|Couldn't find rust-analyzer binary.|]
     Just x -> return x
 
   (Just hlsIn, Just hlsOut, Just hlsErr, p) <- createProcess (
@@ -136,8 +136,8 @@ main = do
       withAsync (readHlsErr hlsErr) $ \_hlsErrAsync ->
         withAsync (forever $ handleStdin hlsIn clientReqMap serverReqMap) $ \_stdinAsync -> do
           waitForProcess p >>= \case
-            ExitFailure n -> logErrorN [i|haskell-language-server subprocess exited with code #{n}|]
-            ExitSuccess -> logInfoN [i|haskell-language-server subprocess exited successfully|]
+            ExitFailure n -> logErrorN [i|rust-analyzer subprocess exited with code #{n}|]
+            ExitSuccess -> logInfoN [i|rust-analyzer subprocess exited successfully|]
 
 
 handleStdin :: (

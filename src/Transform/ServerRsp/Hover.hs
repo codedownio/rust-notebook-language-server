@@ -39,7 +39,7 @@ fixupHoverText initialHover = do
       newParams <- traverseOf contents (fixupDocumentReferences referenceRegex transformer curLines) paramsInProgress
       loop (newParams, xs)
 
-fixupDocumentReferences :: forall n. MonadLogger n => Regex -> HaskellNotebookTransformer -> Rope -> HoverContents -> n HoverContents
+fixupDocumentReferences :: forall n. MonadLogger n => Regex -> RustNotebookTransformer -> Rope -> HoverContents -> n HoverContents
 fixupDocumentReferences docRegex transformer _curLines (HoverContents (MarkupContent k t)) = (HoverContents . MarkupContent k) <$> (fixupDocumentReferences' docRegex transformer t)
 fixupDocumentReferences docRegex transformer _curLines (HoverContentsMS mss) = HoverContentsMS <$> (mapM transformMarkedString mss)
   where
@@ -47,12 +47,12 @@ fixupDocumentReferences docRegex transformer _curLines (HoverContentsMS mss) = H
     transformMarkedString (PlainString t) = PlainString <$> (fixupDocumentReferences' docRegex transformer t)
     transformMarkedString (CodeString (LanguageString l t)) = (CodeString . LanguageString l) <$> (fixupDocumentReferences' docRegex transformer t)
 
-fixupDocumentReferences' :: forall n. MonadLogger n => Regex -> HaskellNotebookTransformer -> Text -> n Text
+fixupDocumentReferences' :: forall n. MonadLogger n => Regex -> RustNotebookTransformer -> Text -> n Text
 fixupDocumentReferences' docRegex transformer t =
   traverseOf ((regexing docRegex) . groups) (transformGroup transformer) t
 
   where
-    transformGroup :: HaskellNotebookTransformer -> [Text] -> n [Text]
+    transformGroup :: RustNotebookTransformer -> [Text] -> n [Text]
     transformGroup transformer orig@[(readMay . T.unpack) -> Just line, (readMay . T.unpack) -> Just ch] = do
       case untransformPosition transformerParams transformer (Position (line - 1) (ch - 1)) of
         Nothing -> return orig

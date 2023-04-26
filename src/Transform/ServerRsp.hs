@@ -12,7 +12,6 @@ import Data.Aeson as A
 import Data.Maybe
 import Data.String.Interpolate
 import Data.Time
-import Language.LSP.Notebook
 import Language.LSP.Types
 import Language.LSP.Types.Lens as Lens
 import Transform.Common
@@ -54,16 +53,13 @@ transformServerRsp' STextDocumentDocumentSymbol initialParams result = whenNoteb
     InR (List symbolInformations) -> return $ InR $ List (symbolInformations & filter (not . ignoreSymbol)
                                                                              & mapMaybe (traverseOf (location . range) (untransformRange tx)))
   where
-    ignoreSymbol x = isExpressionVariable expressionToDeclarationParams (x ^. name)
-                     -- Ignore imports symbol as it doesn't make much sense in notebooks, where imports can appear anywhere.
-                     -- Also, it gives away our hidden unsafePerformIO import at the top of the file (for statement handling)
-                     || (x ^. name) == "imports"
+    ignoreSymbol _ = False
 
 transformServerRsp' STextDocumentCodeAction initialParams result@(List xs) = whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {}) -> do
   List <$> filterM (fmap not . isInternalReferringCodeAction) xs
   where
-    isInternalReferringCodeAction (InL command) = containsExpressionVariable expressionToDeclarationParams (command ^. title)
-    isInternalReferringCodeAction (InR codeAction) = containsExpressionVariable expressionToDeclarationParams (codeAction ^. title)
+    isInternalReferringCodeAction (InL _command) = pure False
+    isInternalReferringCodeAction (InR _codeAction) = pure False
 
 transformServerRsp' STextDocumentCodeLens initialParams result@(List xs) = whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) -> do
   return $ List $ mapMaybe (untransformRanged tx) xs

@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Test.Transformer.StripDirective where
+module Test.Transformer.HeadTail where
 
-import Language.LSP.Transformer
-import Language.LSP.Types hiding (line)
+-- import Language.LSP.Transformer
+-- import Language.LSP.Types hiding (line)
 import Test.Sandwich
 
 
 spec :: TopSpec
-spec = describe "StripDirective" $ do
-  it "strips out GHCi directives" $ do
+spec = describe "HeadTailTransformer" $ do
+  it "works" $ do
     pending
     -- let (ls, ed@(StripDirective affectedLines)) = project SDParams (listToDoc ["foo = 42", ":t foo"])
     -- ls `shouldBe` (listToDoc ["foo = 42", ""])

@@ -4,16 +4,25 @@
 module Test where
 
 import Control.Monad
+import Data.Function
 import Data.String.Interpolate
 import Data.Text (Text)
-import qualified Data.Text as T
-import GHC
-import qualified GHC.Paths
+import Language.Rust.Parser
+import Language.Rust.Syntax
 
+
+parsed1 = inputStreamFromString "fn main () { println!(\"Hello world!\"); }"
+        & parse' @(SourceFile Span)
+
+parsed2 = inputStreamFromString [i|println!("Hello world");|]
+        & parse' @(SourceFile Span)
+
+parsed3 = inputStreamFromString [i|let mut message = "Hello ".to_owned();|]
+        & parse' @(SourceFile Span)
 
 main :: IO ()
 main = do
-  let text = prints
+  let _text = prints
   locatedCodeBlocks :: [Text] <- undefined
   forM_ locatedCodeBlocks print
 

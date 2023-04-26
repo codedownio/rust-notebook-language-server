@@ -70,7 +70,7 @@ type TransformerMonad n = (
 -- * TransformerState
 
 data DocumentState = DocumentState {
-  transformer :: HaskellNotebookTransformer
+  transformer :: RustNotebookTransformer
   , curLines :: Doc
   , origUri :: Uri
   , newUri :: Uri

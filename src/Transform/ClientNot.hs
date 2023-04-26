@@ -38,7 +38,7 @@ transformClientNot' :: (TransformerMonad n) => ClientNotMethod m -> MessageParam
 
 transformClientNot' STextDocumentDidOpen params = whenNotebook params $ \u -> do
   let ls = Rope.fromText (params ^. (textDocument . text))
-  let (ls', transformer' :: HaskellNotebookTransformer) = project transformerParams ls
+  let (ls', transformer' :: RustNotebookTransformer) = project transformerParams ls
   TransformerState {..} <- ask
   newUri <- addExtensionToUri ".hs" u
   referenceRegex <- case uriToFilePath newUri of

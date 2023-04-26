@@ -11,25 +11,25 @@ import Language.LSP.Types.Lens as Lens
 
 -- * Transform
 
-transformRange :: HaskellNotebookTransformer -> Range -> Maybe Range
+transformRange :: RustNotebookTransformer -> Range -> Maybe Range
 transformRange = transformRanged
 
-transformRanged :: (HasRange a Range) => HaskellNotebookTransformer -> a -> Maybe a
+transformRanged :: (HasRange a Range) => RustNotebookTransformer -> a -> Maybe a
 transformRanged tx x = x
   & traverseOf (range . start) (transformPosition transformerParams tx)
   >>= traverseOf (range . end) (transformPosition transformerParams tx)
 
 -- * Untransform
 
-untransformRange :: HaskellNotebookTransformer -> Range -> Maybe Range
+untransformRange :: RustNotebookTransformer -> Range -> Maybe Range
 untransformRange = untransformRanged
 
-untransformRanged :: (HasRange a Range) => HaskellNotebookTransformer -> a -> Maybe a
+untransformRanged :: (HasRange a Range) => RustNotebookTransformer -> a -> Maybe a
 untransformRanged tx x = x
   & traverseOf (range . start) (untransformPosition transformerParams tx)
   >>= traverseOf (range . end) (untransformPosition transformerParams tx)
 
-untransformRangedMaybe :: (HasRange a (Maybe Range)) => HaskellNotebookTransformer -> a -> Maybe a
+untransformRangedMaybe :: (HasRange a (Maybe Range)) => RustNotebookTransformer -> a -> Maybe a
 untransformRangedMaybe tx x = x
   & traverseOf (range . _Just . start) (untransformPosition transformerParams tx)
   >>= traverseOf (range . _Just . end) (untransformPosition transformerParams tx)

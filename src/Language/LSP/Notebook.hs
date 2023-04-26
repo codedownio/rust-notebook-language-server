@@ -1,23 +1,17 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Language.LSP.Notebook (
-  module Language.LSP.Notebook.ExpressionToDeclaration
-
-  , HaskellNotebookTransformer
-  , expressionToDeclarationParams
+  RustNotebookTransformer
   , transformerParams
   ) where
 
-import Language.LSP.Notebook.ExpressionToDeclaration
+import Language.LSP.Notebook.HeadTailTransformer
 import Language.LSP.Transformer
 
 
-type HaskellNotebookTransformer =
-  ExpressionToDeclaration -- Convert naked expressions to declarations
+type RustNotebookTransformer =
+  HeadTailTransformer -- Wrap the whole doc in a function
 
-expressionToDeclarationParams :: Params ExpressionToDeclaration
-expressionToDeclarationParams = EDParams 10
-
-transformerParams :: Params HaskellNotebookTransformer
+transformerParams :: Params RustNotebookTransformer
 transformerParams =
-  expressionToDeclarationParams
+  (["fn main() {"], ["}"])
