@@ -74,12 +74,14 @@ transformClientNot' STextDocumentDidOpen params = whenNotebook params $ \u -> do
          & set (textDocument . text) (Rope.toText ls')
          & set (textDocument . uri) newUri
 
-transformClientNot' STextDocumentDidChange params = whenNotebook params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri}) -> do
+transformClientNot' STextDocumentDidChange params = whenNotebook params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri, newPath}) -> do
   let (List changeEvents) = params ^. contentChanges
   let (changeEvents', tx') = handleDiffMulti transformerParams before changeEvents tx
   let after = applyChanges changeEvents before
+  liftIO $ T.writeFile newPath (Rope.toText after)
   return (ds { transformer = tx', curLines = after }, params & set contentChanges (List changeEvents')
                                                              & set (textDocument . uri) newUri)
+
 transformClientNot' STextDocumentDidClose params = whenNotebook params $ \u -> do
   TransformerState {..} <- ask
   maybeDocumentState <- modifyMVar transformerDocuments (return . flipTuple . M.updateLookupWithKey (\_ _ -> Nothing) (getUri u))
