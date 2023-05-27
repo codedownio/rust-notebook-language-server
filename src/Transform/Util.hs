@@ -45,19 +45,20 @@ whenNotebook' uri params notebookParams = case parseURIReference (T.unpack (getU
 
 -- * whenNotebookResult
 
-whenNotebookResultUri :: (MonadLoggerIO n, HasUri a Uri) => a -> (Uri -> n a) -> n a
-whenNotebookResultUri params = whenNotebookResult' (params ^. uri) params
+whenReverseLookupUri :: (TransformerMonad n, MonadLoggerIO n, HasUri a Uri) => a -> (DocumentState -> n a) -> n a
+whenReverseLookupUri params = whenReverseLookupUri' (params ^. uri) params
 
--- | Note that this takes in server URIs (.ipynb.hs) and calls the callback with original URIs (.ipynb)
--- TODO: do a lot less String/Text conversion here
-whenNotebookResult' :: (MonadLoggerIO n) => Uri -> a -> (Uri -> n a) -> n a
-whenNotebookResult' (Uri uriText) params notebookParams = case parseURIReference (T.unpack uriText) of
-  Nothing -> return params
-  Just networkUri@(URI {..}) -> do
-    if | ".ipynb.hs" `L.isSuffixOf` fmap C.toLower uriPath -> do
-           let correctedNetworkUri = networkUri { uriPath = T.unpack (T.dropEnd 3 (T.pack uriPath)) }
-           notebookParams (Uri (T.pack (uriToString Prelude.id correctedNetworkUri "")))
-       | otherwise -> return params
+-- | Note that this takes in server URIs and calls the callback with original URIs
+-- TODO: make this more efficient
+whenReverseLookupUri' :: (TransformerMonad n) => Uri -> a -> (DocumentState -> n a) -> n a
+whenReverseLookupUri' uri params cb = do
+  txDocumentsVar <- asks transformerDocuments
+  txDocuments <- readMVar txDocumentsVar
+  flip fix (M.toList txDocuments) $ \loop items -> case items of
+    [] -> return params
+    ((_, ds@(DocumentState {..})):rest) ->
+      if | newUri == uri -> cb ds
+         | otherwise -> loop rest
 
 -- * TransformerMonad
 
