@@ -51,7 +51,7 @@ transformClientNot' STextDocumentDidOpen params = whenNotebook params $ \u -> do
 
     newPath <- do
       createDirectoryIfMissing True (takeDirectory path)
-      liftIO $ T.writeFile path t
+      liftIO $ T.writeFile path (Rope.toText ls')
       return path
 
     pure (newPath, mkDocRegex (T.pack (identifier <.> "rs")))
