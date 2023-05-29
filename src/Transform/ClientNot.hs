@@ -1,6 +1,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Transform.ClientNot where
 
@@ -29,18 +30,22 @@ import UnliftIO.MVar
 
 type ClientNotMethod m = SMethod (m :: Method FromClient Notification)
 
-transformClientNot :: (TransformerMonad n, HasJSON (NotificationMessage m)) => ClientNotMethod m -> NotificationMessage m -> n (NotificationMessage m)
-transformClientNot meth msg = do
+transformClientNot :: (
+  TransformerMonad n, HasJSON (NotificationMessage m)
+  ) => (forall (o :: Method FromClient Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> NotificationMessage m -> n (NotificationMessage m)
+transformClientNot sendExtraNotification meth msg = do
   start <- liftIO getCurrentTime
-  p' <- transformClientNot' meth (msg ^. params)
+  p' <- transformClientNot' sendExtraNotification meth (msg ^. params)
   stop <- liftIO getCurrentTime
   let msg' = set params p' msg
   when (msg' /= msg) $ logDebugN [i|Transforming client not #{meth} in #{diffUTCTime stop start}: (#{A.encode msg} --> #{A.encode msg'})|]
   return msg'
 
-transformClientNot' :: (TransformerMonad n) => ClientNotMethod m -> MessageParams m -> n (MessageParams m)
+transformClientNot' :: (
+  TransformerMonad n
+  ) => (forall (o :: Method FromClient Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
 
-transformClientNot' STextDocumentDidOpen params = whenNotebook params $ \u -> do
+transformClientNot' _ STextDocumentDidOpen params = whenNotebook params $ \u -> do
   let t = params ^. (textDocument . text)
   let ls = Rope.fromText t
   let (ls', transformer' :: RustNotebookTransformer) = project transformerParams ls
@@ -74,15 +79,31 @@ transformClientNot' STextDocumentDidOpen params = whenNotebook params $ \u -> do
          & set (textDocument . text) (Rope.toText ls')
          & set (textDocument . uri) newUri
 
-transformClientNot' STextDocumentDidChange params = whenNotebook params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri, newPath}) -> do
+transformClientNot' sendExtraNotification STextDocumentDidChange params = whenNotebook params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri, newPath}) -> do
   let (List changeEvents) = params ^. contentChanges
   let (changeEvents', tx') = handleDiffMulti transformerParams before changeEvents tx
   let after = applyChanges changeEvents before
+
+  whenServerCapabilitiesSatisfy supportsWillSave $ \_ ->
+    sendExtraNotification $ NotificationMessage "2.0" STextDocumentWillSave $ WillSaveTextDocumentParams {
+      _textDocument = TextDocumentIdentifier newUri
+      , _reason = SaveAfterDelay
+      }
+
   liftIO $ T.writeFile newPath (Rope.toText after)
+
+  whenServerCapabilitiesSatisfy supportsSave $ \maybeSaveOptions ->
+    sendExtraNotification $ NotificationMessage "2.0" STextDocumentDidSave $ DidSaveTextDocumentParams {
+      _textDocument = TextDocumentIdentifier newUri
+      , _text = case maybeSaveOptions of
+          Just (SaveOptions {_includeText=(Just True)}) -> Just (Rope.toText after)
+          _ -> Nothing
+      }
+
   return (ds { transformer = tx', curLines = after }, params & set contentChanges (List changeEvents')
                                                              & set (textDocument . uri) newUri)
 
-transformClientNot' STextDocumentDidClose params = whenNotebook params $ \u -> do
+transformClientNot' _ STextDocumentDidClose params = whenNotebook params $ \u -> do
   TransformerState {..} <- ask
   maybeDocumentState <- modifyMVar transformerDocuments (return . flipTuple . M.updateLookupWithKey (\_ _ -> Nothing) (getUri u))
   newUri <- case maybeDocumentState of
@@ -94,4 +115,4 @@ transformClientNot' STextDocumentDidClose params = whenNotebook params $ \u -> d
   return $ params
          & set (textDocument . uri) newUri
 
-transformClientNot' _ params = return params
+transformClientNot' _ _ params = return params

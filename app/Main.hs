@@ -174,7 +174,7 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
             Nothing -> return m
           transformClientReq meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
         Right (FromClientNot meth msg) ->
-          transformClientNot meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
+          transformClientNot (liftIO . writeToHandle wrappedIn . A.encode) meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
 
 readWrappedOut :: (
   MonadUnliftIO m, MonadLoggerIO m, MonadReader TransformerState m, MonadFail m

@@ -121,23 +121,23 @@ modifyTransformer def cb uri = do
 
 -- * Checking server capabilities
 
-whenServerCapabilitiesSatisfy :: TransformerMonad n => (ServerCapabilities -> Bool) -> n () -> n ()
+whenServerCapabilitiesSatisfy :: TransformerMonad n => (ServerCapabilities -> (Bool, a)) -> (a -> n ()) -> n ()
 whenServerCapabilitiesSatisfy cb action = do
   initializeResultVar <- asks transformerInitializeResult
   readMVar initializeResultVar >>= \case
-    Just x | cb (x ^. capabilities) -> action
+    Just ((cb . (^. capabilities)) -> (True, sideValue)) -> action sideValue
     _ -> return ()
 
-supportsWillSave :: ServerCapabilities -> Bool
-supportsWillSave (ServerCapabilities { _textDocumentSync=(Just (InL (TextDocumentSyncOptions {_willSave=(Just True)}))) }) = True
-supportsWillSave _ = False
+supportsWillSave :: ServerCapabilities -> (Bool, ())
+supportsWillSave (ServerCapabilities { _textDocumentSync=(Just (InL (TextDocumentSyncOptions {_willSave=(Just True)}))) }) = (True, ())
+supportsWillSave _ = (False, ())
 
-supportsSave :: ServerCapabilities -> Bool
+supportsSave :: ServerCapabilities -> (Bool, Maybe SaveOptions)
 supportsSave (ServerCapabilities { _textDocumentSync=(Just (InL (TextDocumentSyncOptions {_save}))) }) = case _save of
-  Nothing -> False
-  Just (InL x) -> x
-  Just (InR _saveOptions) -> True
-supportsSave _ = False
+  Nothing -> (False, Nothing)
+  Just (InL x) -> (x, Nothing)
+  Just (InR saveOptions) -> (True, Just saveOptions)
+supportsSave _ = (False, Nothing)
 
 -- * Random identifiers
 
