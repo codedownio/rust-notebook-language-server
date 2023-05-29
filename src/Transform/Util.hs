@@ -20,6 +20,7 @@ import qualified Data.Text as T
 import Language.LSP.Notebook
 import Language.LSP.Transformer
 import Language.LSP.Types
+import Language.LSP.Types.Capabilities
 import Language.LSP.Types.Lens as Lens
 import Network.URI
 import System.FilePath
@@ -83,6 +84,7 @@ data DocumentState = DocumentState {
 data TransformerState = TransformerState {
   transformerDocuments :: MVar (Map Text DocumentState)
   , transformerInitializeParams :: MVar (Maybe InitializeParams)
+  , transformerInitializeResult :: MVar (Maybe InitializeResult)
   , transformerShadowDir :: FilePath
   }
 
@@ -91,6 +93,7 @@ data TransformerState = TransformerState {
 newTransformerState :: (MonadIO m) => FilePath -> m TransformerState
 newTransformerState shadowDir = TransformerState
   <$> newMVar mempty
+  <*> newMVar Nothing
   <*> newMVar Nothing
   <*> pure shadowDir
 
@@ -115,6 +118,26 @@ modifyTransformer def cb uri = do
     Just tx -> do
       (tx', ret) <- cb tx
       return (M.insert (getUri uri) tx' m, ret)
+
+-- * Checking server capabilities
+
+whenServerCapabilitiesSatisfy :: TransformerMonad n => (ServerCapabilities -> Bool) -> n () -> n ()
+whenServerCapabilitiesSatisfy cb action = do
+  initializeResultVar <- asks transformerInitializeResult
+  readMVar initializeResultVar >>= \case
+    Just x | cb (x ^. capabilities) -> action
+    _ -> return ()
+
+supportsWillSave :: ServerCapabilities -> Bool
+supportsWillSave (ServerCapabilities { _textDocumentSync=(Just (InL (TextDocumentSyncOptions {_willSave=(Just True)}))) }) = True
+supportsWillSave _ = False
+
+supportsSave :: ServerCapabilities -> Bool
+supportsSave (ServerCapabilities { _textDocumentSync=(Just (InL (TextDocumentSyncOptions {_save}))) }) = case _save of
+  Nothing -> False
+  Just (InL x) -> x
+  Just (InR _saveOptions) -> True
+supportsSave _ = False
 
 -- * Random identifiers
 

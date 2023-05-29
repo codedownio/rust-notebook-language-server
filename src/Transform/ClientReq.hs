@@ -45,6 +45,12 @@ transformClientReq' SInitialize params = do
   pure $ params
     & set rootPath (Just (T.pack dir))
     & set rootUri (Just (filePathToUri dir))
+    & set (capabilities . textDocument . _Just . synchronization) (Just $ TextDocumentSyncClientCapabilities {
+                                                                      _dynamicRegistration = Just False
+                                                                      , _willSave = Just True
+                                                                      , _willSaveWaitUntil = Just False
+                                                                      , _didSave = Just True
+                                                                      })
 
 transformClientReq' STextDocumentCodeAction params = whenNotebook params $ withTransformer params $ doTransformUriAndRange @m params
 transformClientReq' STextDocumentCodeLens params = whenNotebook params $ withTransformer params $ doTransformUri @m params
