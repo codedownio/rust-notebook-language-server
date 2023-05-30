@@ -61,6 +61,16 @@ transformClientReq' STextDocumentDocumentSymbol params = whenNotebook params $ w
 transformClientReq' STextDocumentHover params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
 transformClientReq' STextDocumentImplementation params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
 transformClientReq' STextDocumentTypeDefinition params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
+
+-- Custom methods provided by rust-analyzer
+transformClientReq' (SCustomMethod "rust-analyzer/analyzerStatus") val =
+  case A.fromJSON val of
+    A.Error err -> logErrorN [i|Failed to decode custom method "rust-analyzer/analyzerStatus": #{err}|] >> return val
+    A.Success (TextDocumentIdentifier uri) ->
+      whenNotebook' uri val $
+        withTransformer val $ \(DocumentState {newUri}) ->
+          return $ A.toJSON $ TextDocumentIdentifier newUri
+
 transformClientReq' _ params = return params
 
 
