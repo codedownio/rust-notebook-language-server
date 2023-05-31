@@ -45,10 +45,11 @@ transformClientNot' :: (
   TransformerMonad n
   ) => (forall (o :: Method FromClient Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
 
-transformClientNot' _ STextDocumentDidOpen params = whenNotebook params $ \u -> do
+transformClientNot' _ STextDocumentDidOpen params = whenAnything params $ \u -> do
   let t = params ^. (textDocument . text)
   let ls = Rope.fromText t
-  let (ls', transformer' :: RustNotebookTransformer) = project transformerParams ls
+  let txParams = if isNotebook u then transformerParams else idTransformerParams
+  let (ls', transformer' :: RustNotebookTransformer) = project txParams ls
   TransformerState {..} <- ask
   (newPath, referenceRegex) <- do
     identifier <- makeUUID' 15
@@ -79,7 +80,7 @@ transformClientNot' _ STextDocumentDidOpen params = whenNotebook params $ \u -> 
          & set (textDocument . text) (Rope.toText ls')
          & set (textDocument . uri) newUri
 
-transformClientNot' sendExtraNotification STextDocumentDidChange params = whenNotebook params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri, newPath}) -> do
+transformClientNot' sendExtraNotification STextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri, newPath}) -> do
   let (List changeEvents) = params ^. contentChanges
   let (changeEvents', tx') = handleDiffMulti transformerParams before changeEvents tx
   let after = applyChanges changeEvents before
@@ -103,7 +104,7 @@ transformClientNot' sendExtraNotification STextDocumentDidChange params = whenNo
   return (ds { transformer = tx', curLines = after }, params & set contentChanges (List changeEvents')
                                                              & set (textDocument . uri) newUri)
 
-transformClientNot' _ STextDocumentDidClose params = whenNotebook params $ \u -> do
+transformClientNot' _ STextDocumentDidClose params = whenAnything params $ \u -> do
   TransformerState {..} <- ask
   maybeDocumentState <- modifyMVar transformerDocuments (return . flipTuple . M.updateLookupWithKey (\_ _ -> Nothing) (getUri u))
   newUri <- case maybeDocumentState of

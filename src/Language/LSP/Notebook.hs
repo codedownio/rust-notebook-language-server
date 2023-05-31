@@ -3,6 +3,7 @@
 module Language.LSP.Notebook (
   RustNotebookTransformer
   , transformerParams
+  , idTransformerParams
   ) where
 
 import Language.LSP.Notebook.HeadTailTransformer
@@ -15,3 +16,7 @@ type RustNotebookTransformer =
 transformerParams :: Params RustNotebookTransformer
 transformerParams =
   (["fn main() {"], ["}"])
+
+idTransformerParams :: Params RustNotebookTransformer
+idTransformerParams =
+  ([], [])

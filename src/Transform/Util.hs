@@ -28,6 +28,9 @@ import qualified System.Random as R
 import UnliftIO.MVar
 
 
+whenAnything :: (MonadLoggerIO n, HasTextDocument a b, HasUri b Uri) => a -> (Uri -> n a) -> n a
+whenAnything params cb = cb (params ^. (textDocument . uri))
+
 whenNotebook :: (MonadLoggerIO n, HasTextDocument a b, HasUri b Uri) => a -> (Uri -> n a) -> n a
 whenNotebook params = whenNotebook' (params ^. (textDocument . uri)) params
 
@@ -38,11 +41,14 @@ whenNotebookByInitialParams :: (MonadLoggerIO n, HasTextDocument a b, HasUri b U
 whenNotebookByInitialParams params = whenNotebook' (params ^. (textDocument . uri))
 
 whenNotebook' :: (MonadLoggerIO n) => Uri -> a -> (Uri -> n a) -> n a
-whenNotebook' uri params notebookParams = case parseURIReference (T.unpack (getUri uri)) of
-  Nothing -> return params
-  Just (URI {..}) -> do
-    if | ".ipynb" `L.isSuffixOf` fmap C.toLower uriPath -> notebookParams uri
-       | otherwise -> return params
+whenNotebook' uri params notebookParams = if
+  | isNotebook uri -> notebookParams uri
+  | otherwise -> pure params
+
+isNotebook :: Uri -> Bool
+isNotebook uri = case parseURIReference (T.unpack (getUri uri)) of
+  Nothing -> False
+  Just (URI {..}) -> ".ipynb" `L.isSuffixOf` fmap C.toLower uriPath
 
 -- * whenNotebookResult
 
