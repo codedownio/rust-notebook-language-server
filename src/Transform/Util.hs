@@ -28,8 +28,18 @@ import qualified System.Random as R
 import UnliftIO.MVar
 
 
+-- * whenAnything
+
 whenAnything :: (MonadLoggerIO n, HasTextDocument a b, HasUri b Uri) => a -> (Uri -> n a) -> n a
-whenAnything params cb = cb (params ^. (textDocument . uri))
+whenAnything params = whenAnything' (params ^. (textDocument . uri)) params
+
+whenAnythingByInitialParams :: (MonadLoggerIO n, HasTextDocument a b, HasUri b Uri) => a -> c -> (Uri -> n c) -> n c
+whenAnythingByInitialParams params = whenAnything' (params ^. (textDocument . uri))
+
+whenAnything' :: (MonadLoggerIO n) => Uri -> a -> (Uri -> n a) -> n a
+whenAnything' uri _params notebookParams = notebookParams uri
+
+-- * whenNotebook
 
 whenNotebook :: (MonadLoggerIO n, HasTextDocument a b, HasUri b Uri) => a -> (Uri -> n a) -> n a
 whenNotebook params = whenNotebook' (params ^. (textDocument . uri)) params

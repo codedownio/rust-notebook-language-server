@@ -23,7 +23,9 @@ import UnliftIO.MVar
 
 type ServerRspMethod m = SMethod (m :: Method FromClient Request)
 
-transformServerRsp :: (TransformerMonad n, HasJSON (ResponseMessage m)) => ServerRspMethod m -> MessageParams m -> ResponseMessage m -> n (ResponseMessage m)
+transformServerRsp :: (
+  TransformerMonad n, HasJSON (ResponseMessage m)
+  ) => ServerRspMethod m -> MessageParams m -> ResponseMessage m -> n (ResponseMessage m)
 transformServerRsp meth initialParams msg = do
   case msg ^. result of
     Left _err -> return msg
@@ -43,11 +45,11 @@ transformServerRsp' SInitialize _initialParams result = do
   return result
 
 transformServerRsp' STextDocumentDocumentHighlight initialParams result@(List inner) =
-  whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     return $ List $ mapMaybe (untransformRanged tx) inner
 
 transformServerRsp' STextDocumentHover initialParams result =
-  whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     case result of
       Nothing -> return Nothing
       Just hov -> do
@@ -55,7 +57,7 @@ transformServerRsp' STextDocumentHover initialParams result =
         return $ untransformRangedMaybe tx hov'
 
 transformServerRsp' STextDocumentDocumentSymbol initialParams result =
-  whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     case result of
       InL (List documentSymbols) -> return $ InL $ List (documentSymbols & filter (not . ignoreSymbol)
                                                                          & mapMaybe (traverseOf range (untransformRange tx))
@@ -66,14 +68,14 @@ transformServerRsp' STextDocumentDocumentSymbol initialParams result =
     ignoreSymbol _ = False
 
 transformServerRsp' STextDocumentCodeAction initialParams result@(List xs) =
-  whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {}) -> do
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {}) -> do
     List <$> filterM (fmap not . isInternalReferringCodeAction) xs
   where
     isInternalReferringCodeAction (InL _command) = pure False
     isInternalReferringCodeAction (InR _codeAction) = pure False
 
 transformServerRsp' STextDocumentCodeLens initialParams result@(List xs) =
-  whenNotebookByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) -> do
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) -> do
     return $ List $ mapMaybe (untransformRanged tx) xs
 
 transformServerRsp' _ _ result = return result

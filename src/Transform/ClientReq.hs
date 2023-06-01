@@ -52,22 +52,22 @@ transformClientReq' SInitialize params = do
                                                                       , _didSave = Just True
                                                                       })
 
-transformClientReq' STextDocumentCodeAction params = whenNotebook params $ withTransformer params $ doTransformUriAndRange @m params
-transformClientReq' STextDocumentCodeLens params = whenNotebook params $ withTransformer params $ doTransformUri @m params
-transformClientReq' STextDocumentCompletion params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentDefinition params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentDocumentHighlight params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentDocumentSymbol params = whenNotebook params $ withTransformer params $ doTransformUri @m params
-transformClientReq' STextDocumentHover params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentImplementation params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentTypeDefinition params = whenNotebook params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' STextDocumentCodeAction params = whenAnything params $ withTransformer params $ doTransformUriAndRange @m params
+transformClientReq' STextDocumentCodeLens params = whenAnything params $ withTransformer params $ doTransformUri @m params
+transformClientReq' STextDocumentCompletion params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' STextDocumentDefinition params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' STextDocumentDocumentHighlight params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' STextDocumentDocumentSymbol params = whenAnything params $ withTransformer params $ doTransformUri @m params
+transformClientReq' STextDocumentHover params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' STextDocumentImplementation params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' STextDocumentTypeDefinition params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
 
 -- Custom methods provided by rust-analyzer
 transformClientReq' (SCustomMethod "rust-analyzer/analyzerStatus") val =
   case A.fromJSON val of
     A.Error err -> logErrorN [i|Failed to decode custom method "rust-analyzer/analyzerStatus": #{err}|] >> return val
     A.Success (TextDocumentIdentifier uri) ->
-      whenNotebook' uri val $
+      whenAnything' uri val $
         withTransformer val $ \(DocumentState {newUri}) ->
           return $ A.toJSON $ TextDocumentIdentifier newUri
 
