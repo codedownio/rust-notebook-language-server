@@ -50,6 +50,7 @@ transformClientNot' _ STextDocumentDidOpen params = whenAnything params $ \u -> 
   let ls = Rope.fromText t
   let txParams = if isNotebook u then transformerParams else idTransformerParams
   let (ls', transformer' :: RustNotebookTransformer) = project txParams ls
+  logInfoN [i|(#{getUri u}) Got initial transformer: #{transformer'}|]
   TransformerState {..} <- ask
   (newPath, referenceRegex) <- do
     identifier <- makeUUID' 15

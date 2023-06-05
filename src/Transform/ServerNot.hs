@@ -30,6 +30,7 @@ transformServerNot meth msg = do
 transformServerNot' :: (TransformerMonad n) => SMethod m -> MessageParams m -> n (MessageParams m)
 
 transformServerNot' STextDocumentPublishDiagnostics params = whenReverseLookupUri params $ \(DocumentState {transformer=tx, ..}) -> do
+  logInfoN [i|Saw transformer when transforming diagnostics: #{tx}|]
   return $ params
          & set uri origUri
          & over diagnostics (\(List xs) -> List $ mapMaybe (traverseOf range (untransformRange tx)) xs)
