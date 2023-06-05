@@ -26,8 +26,8 @@ transformRange = transformRanged
 
 transformRanged :: (HasRange a Range) => RustNotebookTransformer -> a -> Maybe a
 transformRanged tx x = x
-  & traverseOf (range . start) (transformPosition transformerParams tx)
-  >>= traverseOf (range . end) (transformPosition transformerParams tx)
+  & traverseOf (range . start) (transformPosition (getParams tx) tx)
+  >>= traverseOf (range . end) (transformPosition (getParams tx) tx)
 
 -- * Untransform
 
@@ -36,13 +36,13 @@ untransformRange = untransformRanged
 
 untransformRanged :: (HasRange a Range) => RustNotebookTransformer -> a -> Maybe a
 untransformRanged tx x = x
-  & traverseOf (range . start) (untransformPosition transformerParams tx)
-  >>= traverseOf (range . end) (untransformPosition transformerParams tx)
+  & traverseOf (range . start) (untransformPosition (getParams tx) tx)
+  >>= traverseOf (range . end) (untransformPosition (getParams tx) tx)
 
 untransformRangedMaybe :: (HasRange a (Maybe Range)) => RustNotebookTransformer -> a -> Maybe a
 untransformRangedMaybe tx x = x
-  & traverseOf (range . _Just . start) (untransformPosition transformerParams tx)
-  >>= traverseOf (range . _Just . end) (untransformPosition transformerParams tx)
+  & traverseOf (range . _Just . start) (untransformPosition (getParams tx) tx)
+  >>= traverseOf (range . _Just . end) (untransformPosition (getParams tx) tx)
 
 -- * Orphan (wish this was in lsp-types)
 

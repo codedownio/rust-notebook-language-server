@@ -80,9 +80,10 @@ transformClientNot' _ STextDocumentDidOpen params = whenAnything params $ \u -> 
          & set (textDocument . text) (Rope.toText ls')
          & set (textDocument . uri) newUri
 
-transformClientNot' sendExtraNotification STextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, newUri, newPath}) -> do
+transformClientNot' sendExtraNotification STextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, origUri, newUri, newPath}) -> do
+  let txParams = if isNotebook origUri then transformerParams else idTransformerParams
   let (List changeEvents) = params ^. contentChanges
-  let (changeEvents', tx') = handleDiffMulti transformerParams before changeEvents tx
+  let (changeEvents', tx') = handleDiffMulti txParams before changeEvents tx
   let after = applyChanges changeEvents before
 
   whenServerCapabilitiesSatisfy supportsWillSave $ \_ ->

@@ -33,6 +33,8 @@ type Doc = Rope.Rope
 class Transformer a where
   type Params a
 
+  getParams :: a -> Params a
+
   project :: Params a -> Doc -> (Doc, a)
 
   handleDiffMulti :: Params a -> Doc -> [TextDocumentContentChangeEvent] -> a -> ([TextDocumentContentChangeEvent], a)
@@ -57,6 +59,7 @@ infixr :>
 
 instance (Transformer a, Transformer b) => Transformer (a :> b) where
   type Params (a :> b) = Params a :> Params b
+  getParams (x :> y) = getParams x :> getParams y
   project (xParams :> yParams) lines = (lines'', x :> y)
     where
       (lines', x) = project xParams lines

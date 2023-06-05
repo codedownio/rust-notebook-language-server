@@ -10,11 +10,13 @@ import Language.LSP.Transformer
 import Language.LSP.Types
 
 
-data HeadTailTransformer = HeadTailTransformer UInt UInt UInt
+data HeadTailTransformer = HeadTailTransformer [Text] [Text] UInt UInt UInt
   deriving (Show)
 
 instance Transformer HeadTailTransformer where
   type Params HeadTailTransformer = ([Text], [Text])
+
+  getParams (HeadTailTransformer initialLines finalLines _ _ _) = (initialLines, finalLines)
 
   project (initialLines, finalLines) ls = (beginning <> ls <> ending, tx)
     where
@@ -28,13 +30,15 @@ instance Transformer HeadTailTransformer where
 
       joinLines = Rope.fromText . T.intercalate "\n"
 
-      tx = HeadTailTransformer (fromIntegral (L.length initialLines))
+      tx = HeadTailTransformer initialLines
+                               finalLines
+                               (fromIntegral (L.length initialLines))
                                (fromIntegral (lengthInLines ls))
                                (fromIntegral (L.length finalLines))
 
-  transformPosition _ (HeadTailTransformer s _d _e) (Position l c) = Just $ Position (l + s) c
+  transformPosition _ (HeadTailTransformer _ _ s _d _e) (Position l c) = Just $ Position (l + s) c
 
-  untransformPosition _ (HeadTailTransformer s d _e) (Position l c)
+  untransformPosition _ (HeadTailTransformer _ _ s d _e) (Position l c)
     | l >= s + d = Nothing
     | otherwise = Just $ Position (l - s) c
 

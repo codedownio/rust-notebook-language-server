@@ -14,7 +14,6 @@ import Data.Aeson as A
 import Data.String.Interpolate
 import qualified Data.Text as T
 import Data.Time
-import Language.LSP.Notebook
 import Language.LSP.Transformer
 import Language.LSP.Types
 import Language.LSP.Types.Lens as Lens
@@ -79,7 +78,7 @@ doTransformUriAndPosition :: forall m n a. (
   ) => MessageParams m -> DocumentState -> n (MessageParams m)
 doTransformUriAndPosition params' (DocumentState {transformer=tx, newUri}) = do
   let params = params' & set (textDocument . uri) newUri
-  case transformPosition transformerParams tx (params ^. position) of
+  case transformPosition (getParams tx) tx (params ^. position) of
     Nothing -> do
       logWarnN [i|Couldn't transform position #{params ^. position}|]
       return params
