@@ -7,16 +7,20 @@ module Language.LSP.Notebook (
   ) where
 
 import Language.LSP.Notebook.HeadTailTransformer
+import Language.LSP.Notebook.StripDirective
 import Language.LSP.Transformer
 
 
 type RustNotebookTransformer =
-  HeadTailTransformer -- Wrap the whole doc in a function
+  StripDirective
+  :> HeadTailTransformer -- Wrap the whole doc in a function
 
 transformerParams :: Params RustNotebookTransformer
 transformerParams =
-  (["fn main() {"], ["}"])
+  SDParams True
+  :> (["fn main() {"], ["}"])
 
 idTransformerParams :: Params RustNotebookTransformer
 idTransformerParams =
-  ([], [])
+  SDParams False
+  :> ([], [])

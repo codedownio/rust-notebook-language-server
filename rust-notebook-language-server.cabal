@@ -15,6 +15,7 @@ library
   exposed-modules:
       Language.LSP.Notebook
       Language.LSP.Notebook.HeadTailTransformer
+      Language.LSP.Notebook.StripDirective
       Language.LSP.Transformer
       Transform.ClientNot
       Transform.ClientReq
@@ -147,6 +148,7 @@ test-suite rust-notebook-language-server-test
       Test.Common
       Test.Hover
       Test.Transformer.HeadTail
+      Test.Transformer.StripDirective
       TestLib.Generators
       Paths_rust_notebook_language_server
   hs-source-dirs:
