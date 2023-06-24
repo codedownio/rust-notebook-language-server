@@ -98,24 +98,17 @@ executable rust-notebook-language-server
       aeson
     , base >=4.7 && <5
     , bytestring
-    , containers
-    , filepath
     , lens
-    , lens-regex-pcre
     , lsp-types
     , monad-logger
     , mtl
-    , network-uri
     , optparse-applicative
-    , pcre-light
     , process
-    , random
     , retry
     , rust-notebook-language-server
     , safe
     , string-interpolate
     , text
-    , text-rope
     , unix
     , unliftio
     , unliftio-core
@@ -150,27 +143,13 @@ test-suite rust-notebook-language-server-test
   ghc-options: -Wunused-packages -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N -O2 -W
   build-depends:
       QuickCheck
-    , aeson
     , base >=4.7 && <5
-    , bytestring
-    , containers
     , exceptions
-    , filepath
-    , lens
-    , lens-regex-pcre
     , lsp-types
     , monad-logger
-    , mtl
-    , network-uri
-    , pcre-light
-    , random
     , rust-notebook-language-server
-    , safe
     , sandwich
-    , sandwich-quickcheck
     , string-interpolate
     , text
-    , text-rope
     , unliftio
-    , unliftio-core
   default-language: Haskell2010

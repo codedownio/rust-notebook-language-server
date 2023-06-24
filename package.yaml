@@ -6,25 +6,13 @@ extra-source-files:
 - CHANGELOG.md
 
 dependencies:
-- aeson
 - base >= 4.7 && < 5
-- containers
-- filepath
 # - language-rust
-- lens
-- lens-regex-pcre
 - lsp-types
 - monad-logger
-- mtl
-- network-uri
-- pcre-light
-- random
-- safe
 - string-interpolate
 - text
-- text-rope
 - unliftio
-- unliftio-core
 
 default-extensions:
 - OverloadedStrings
@@ -49,8 +37,20 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
+  - aeson
+  - containers
+  - filepath
+  - lens
+  - lens-regex-pcre
+  - mtl
   - myers-diff
+  - network-uri
+  - pcre-light
+  - random
+  - safe
+  - text-rope
   - time
+  - unliftio-core
 
 executables:
   rust-notebook-language-server:
@@ -64,12 +64,17 @@ executables:
     - -O2
     - -W
     dependencies:
+    - aeson
     - bytestring
+    - lens
+    - mtl
     - optparse-applicative
     - process
     - retry
     - rust-notebook-language-server
+    - safe
     - unix
+    - unliftio-core
 
 tests:
   rust-notebook-language-server-test:
@@ -83,9 +88,8 @@ tests:
     - -O2
     - -W
     dependencies:
-    - bytestring
     - exceptions
     - rust-notebook-language-server
     - QuickCheck
     - sandwich
-    - sandwich-quickcheck
+    # - sandwich-quickcheck

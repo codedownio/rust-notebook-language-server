@@ -1,10 +1,9 @@
-{ mkDerivation, aeson, attoparsec, base, bytestring, containers
-, exceptions, filepath, hpack, lens, lens-regex-pcre, lib
-, lsp-types, monad-logger, mtl, myers-diff, network-uri
-, optparse-applicative, pcre-light, process, QuickCheck, random
-, regex-base, regex-pcre-builtin, retry, safe, sandwich
-, sandwich-quickcheck, string-interpolate, text, text-rope, time
-, unix, unliftio, unliftio-core
+{ mkDerivation, aeson, base, bytestring, containers, exceptions
+, filepath, hpack, lens, lens-regex-pcre, lib, lsp-types
+, monad-logger, mtl, myers-diff, network-uri, optparse-applicative
+, pcre-light, process, QuickCheck, random, retry, safe, sandwich
+, string-interpolate, text, text-rope, time, unix, unliftio
+, unliftio-core
 }:
 mkDerivation {
   pname = "rust-notebook-language-server";
@@ -13,27 +12,19 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson attoparsec base bytestring containers filepath lens
-    lens-regex-pcre lsp-types monad-logger mtl myers-diff network-uri
-    optparse-applicative pcre-light process random regex-base
-    regex-pcre-builtin retry safe string-interpolate text text-rope
-    time unix unliftio unliftio-core
+    aeson base containers filepath lens lens-regex-pcre lsp-types
+    monad-logger mtl myers-diff network-uri pcre-light random safe
+    string-interpolate text text-rope time unliftio unliftio-core
   ];
   libraryToolDepends = [ hpack ];
   executableHaskellDepends = [
-    aeson attoparsec base bytestring containers filepath lens
-    lens-regex-pcre lsp-types monad-logger mtl myers-diff network-uri
-    optparse-applicative pcre-light process random regex-base
-    regex-pcre-builtin retry safe string-interpolate text text-rope
-    time unix unliftio unliftio-core
+    aeson base bytestring lens lsp-types monad-logger mtl
+    optparse-applicative process retry safe string-interpolate text
+    unix unliftio unliftio-core
   ];
   testHaskellDepends = [
-    aeson attoparsec base bytestring containers exceptions filepath
-    lens lens-regex-pcre lsp-types monad-logger mtl myers-diff
-    network-uri optparse-applicative pcre-light process QuickCheck
-    random regex-base regex-pcre-builtin retry safe sandwich
-    sandwich-quickcheck string-interpolate text text-rope time unix
-    unliftio unliftio-core
+    base exceptions lsp-types monad-logger QuickCheck sandwich
+    string-interpolate text unliftio
   ];
   doCheck = false;
   prePatch = "hpack";
