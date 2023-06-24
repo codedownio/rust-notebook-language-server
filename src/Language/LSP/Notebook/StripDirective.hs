@@ -6,12 +6,10 @@
 module Language.LSP.Notebook.StripDirective where
 
 import Data.Foldable
-import qualified Data.List as L
 import Data.Sequence hiding (zip)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
-import Language.Haskell.GHC.Parser as GHC
 import Language.LSP.Transformer
 import Language.LSP.Types
 

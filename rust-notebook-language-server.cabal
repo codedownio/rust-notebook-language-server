@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -9,7 +9,7 @@ version:        0.1.0.0
 build-type:     Simple
 extra-source-files:
     README.md
-    ChangeLog.md
+    CHANGELOG.md
 
 library
   exposed-modules:
@@ -44,16 +44,12 @@ library
       TupleSections
       NumericUnderscores
       TypeApplications
+  ghc-options: -Wunused-packages -Wall -fno-warn-name-shadowing
   build-depends:
       aeson
-    , attoparsec
     , base >=4.7 && <5
-    , bytestring
     , containers
     , filepath
-    , ghc
-    , ghc-parser
-    , ghc-paths
     , lens
     , lens-regex-pcre
     , lsp-types
@@ -61,22 +57,15 @@ library
     , mtl
     , myers-diff
     , network-uri
-    , optparse-applicative
     , pcre-light
-    , process
     , random
-    , regex-base
-    , regex-pcre-builtin
-    , retry
     , safe
     , string-interpolate
     , text
     , text-rope
     , time
-    , unix
     , unliftio
     , unliftio-core
-    , vector
   default-language: Haskell2010
 
 executable rust-notebook-language-server
@@ -104,41 +93,32 @@ executable rust-notebook-language-server
       TupleSections
       NumericUnderscores
       TypeApplications
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2 -W
+  ghc-options: -Wunused-packages -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N -O2 -W
   build-depends:
       aeson
-    , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
     , filepath
-    , ghc
-    , ghc-parser
-    , ghc-paths
     , lens
     , lens-regex-pcre
     , lsp-types
     , monad-logger
     , mtl
-    , myers-diff
     , network-uri
     , optparse-applicative
     , pcre-light
     , process
     , random
-    , regex-base
-    , regex-pcre-builtin
     , retry
     , rust-notebook-language-server
     , safe
     , string-interpolate
     , text
     , text-rope
-    , time
     , unix
     , unliftio
     , unliftio-core
-    , vector
   default-language: Haskell2010
 
 test-suite rust-notebook-language-server-test
@@ -167,33 +147,23 @@ test-suite rust-notebook-language-server-test
       TupleSections
       NumericUnderscores
       TypeApplications
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2 -W
+  ghc-options: -Wunused-packages -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N -O2 -W
   build-depends:
       QuickCheck
     , aeson
-    , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
     , exceptions
     , filepath
-    , ghc
-    , ghc-parser
-    , ghc-paths
     , lens
     , lens-regex-pcre
     , lsp-types
     , monad-logger
     , mtl
-    , myers-diff
     , network-uri
-    , optparse-applicative
     , pcre-light
-    , process
     , random
-    , regex-base
-    , regex-pcre-builtin
-    , retry
     , rust-notebook-language-server
     , safe
     , sandwich
@@ -201,9 +171,6 @@ test-suite rust-notebook-language-server-test
     , string-interpolate
     , text
     , text-rope
-    , time
-    , unix
     , unliftio
     , unliftio-core
-    , vector
   default-language: Haskell2010

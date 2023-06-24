@@ -13,13 +13,14 @@ import Control.Monad.Logger
 import Control.Monad.Reader
 import qualified Data.Char as C
 import qualified Data.List as L
-import Data.Map as M
+import qualified Data.Map as M
+import Data.Maybe
 import Data.String.Interpolate
 import Data.Text
 import qualified Data.Text as T
 import Language.LSP.Notebook
 import Language.LSP.Transformer
-import Language.LSP.Types
+import Language.LSP.Types as LSP
 import Language.LSP.Types.Capabilities
 import Language.LSP.Types.Lens as Lens
 import Network.URI
@@ -98,7 +99,7 @@ data DocumentState = DocumentState {
   }
 
 data TransformerState = TransformerState {
-  transformerDocuments :: MVar (Map Text DocumentState)
+  transformerDocuments :: MVar (M.Map Text DocumentState)
   , transformerInitializeParams :: MVar (Maybe InitializeParams)
   , transformerInitializeResult :: MVar (Maybe InitializeResult)
   , transformerShadowDir :: FilePath
@@ -179,3 +180,6 @@ addExtensionToUri ext u@(Uri t) = case parseURIReference (T.unpack t) of
 
 flipTuple :: (b, a) -> (a, b)
 flipTuple (x, y) = (y, x)
+
+mapMaybeList :: (a -> Maybe b) -> List a -> List b
+mapMaybeList f (LSP.List xs) = LSP.List (mapMaybe f xs)

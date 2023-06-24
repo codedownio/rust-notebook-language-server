@@ -21,7 +21,7 @@ import Transform.Util
 import UnliftIO.MVar
 
 
-type ServerRspMethod m = SMethod (m :: Method FromClient Request)
+type ServerRspMethod m = SMethod (m :: Method 'FromClient 'Request)
 
 transformServerRsp :: (
   TransformerMonad n, HasJSON (ResponseMessage m)
@@ -43,6 +43,25 @@ transformServerRsp' SInitialize _initialParams result = do
   initializeResultVar <- asks transformerInitializeResult
   modifyMVar_ initializeResultVar (\_ -> return $ Just result)
   return result
+
+transformServerRsp' STextDocumentCompletion initialParams result =
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) -> do
+    let fixupCompletionEdit Nothing = Nothing
+        fixupCompletionEdit (Just (CompletionEditText edit)) = CompletionEditText <$> (untransformRanged tx edit)
+        fixupCompletionEdit (Just (CompletionEditInsertReplace (InsertReplaceEdit newText insert replace))) =
+          CompletionEditInsertReplace <$> (InsertReplaceEdit newText <$> untransformRanged tx insert <*> untransformRanged tx replace)
+
+    let fixupItem :: CompletionItem -> CompletionItem
+        fixupItem item = item
+         & over textEdit fixupCompletionEdit
+         & over (additionalTextEdits . _Just) (mapMaybeList (untransformRanged tx))
+
+    let fixupItems :: List CompletionItem -> List CompletionItem
+        fixupItems (List xs) = List (fmap fixupItem xs)
+
+    case result of
+      (InL items) -> return (InL (fixupItems items))
+      (InR completionList) -> return (InR (completionList & over items fixupItems))
 
 transformServerRsp' STextDocumentDocumentHighlight initialParams result@(List inner) =
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->

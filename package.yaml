@@ -3,42 +3,28 @@ version:             0.1.0.0
 
 extra-source-files:
 - README.md
-- ChangeLog.md
+- CHANGELOG.md
 
 dependencies:
 - aeson
-- attoparsec
 - base >= 4.7 && < 5
-- bytestring
 - containers
 - filepath
-- ghc
-- ghc-parser
-- ghc-paths
 # - language-rust
 - lens
 - lens-regex-pcre
 - lsp-types
 - monad-logger
 - mtl
-- myers-diff
 - network-uri
-- optparse-applicative
 - pcre-light
-- process
 - random
-- regex-base
-- regex-pcre-builtin
-- retry
 - safe
 - string-interpolate
 - text
 - text-rope
-- time
-- unix
 - unliftio
 - unliftio-core
-- vector
 
 default-extensions:
 - OverloadedStrings
@@ -55,8 +41,16 @@ default-extensions:
 - NumericUnderscores
 - TypeApplications
 
+ghc-options:
+- -Wunused-packages
+- -Wall
+- -fno-warn-name-shadowing
+
 library:
   source-dirs: src
+  dependencies:
+  - myers-diff
+  - time
 
 executables:
   rust-notebook-language-server:
@@ -70,7 +64,12 @@ executables:
     - -O2
     - -W
     dependencies:
+    - bytestring
+    - optparse-applicative
+    - process
+    - retry
     - rust-notebook-language-server
+    - unix
 
 tests:
   rust-notebook-language-server-test:
@@ -84,6 +83,7 @@ tests:
     - -O2
     - -W
     dependencies:
+    - bytestring
     - exceptions
     - rust-notebook-language-server
     - QuickCheck

@@ -28,11 +28,11 @@ import UnliftIO.Directory
 import UnliftIO.MVar
 
 
-type ClientNotMethod m = SMethod (m :: Method FromClient Notification)
+type ClientNotMethod m = SMethod (m :: Method 'FromClient 'Notification)
 
 transformClientNot :: (
   TransformerMonad n, HasJSON (NotificationMessage m)
-  ) => (forall (o :: Method FromClient Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> NotificationMessage m -> n (NotificationMessage m)
+  ) => (forall (o :: Method 'FromClient 'Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> NotificationMessage m -> n (NotificationMessage m)
 transformClientNot sendExtraNotification meth msg = do
   start <- liftIO getCurrentTime
   p' <- transformClientNot' sendExtraNotification meth (msg ^. params)
@@ -43,7 +43,7 @@ transformClientNot sendExtraNotification meth msg = do
 
 transformClientNot' :: (
   TransformerMonad n
-  ) => (forall (o :: Method FromClient Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
+  ) => (forall (o :: Method 'FromClient 'Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
 
 transformClientNot' _ STextDocumentDidOpen params = whenAnything params $ \u -> do
   let t = params ^. (textDocument . text)
