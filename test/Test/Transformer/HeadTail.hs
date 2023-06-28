@@ -3,7 +3,7 @@
 module Test.Transformer.HeadTail where
 
 -- import Language.LSP.Transformer
--- import Language.LSP.Types hiding (line)
+-- import Language.LSP.Protocol.Types hiding (line)
 import Test.Sandwich
 
 

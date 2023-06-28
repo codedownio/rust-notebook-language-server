@@ -52,13 +52,14 @@ library
     , filepath
     , lens
     , lens-regex-pcre
-    , lsp-types
+    , lsp-types >=2.0.0.1
     , monad-logger
     , mtl
     , myers-diff
     , network-uri
     , pcre-light
     , random
+    , row-types
     , safe
     , string-interpolate
     , text
@@ -99,7 +100,7 @@ executable rust-notebook-language-server
     , base >=4.7 && <5
     , bytestring
     , lens
-    , lsp-types
+    , lsp-types >=2.0.0.1
     , monad-logger
     , mtl
     , optparse-applicative
@@ -145,8 +146,9 @@ test-suite rust-notebook-language-server-test
       QuickCheck
     , base >=4.7 && <5
     , exceptions
-    , lsp-types
+    , lsp-types >=2.0.0.1
     , monad-logger
+    , row-types
     , rust-notebook-language-server
     , sandwich
     , string-interpolate

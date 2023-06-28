@@ -11,7 +11,7 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Language.LSP.Transformer
-import Language.LSP.Types
+import Language.LSP.Protocol.Types
 
 
 data StripDirective = StripDirective Bool (Set.Set UInt)

@@ -20,8 +20,9 @@ import Data.String.Interpolate
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import Language.LSP.Types hiding (FromServerMessage'(..), FromServerMessage, FromClientMessage'(..), FromClientMessage, parseClientMessage, parseServerMessage, LookupFunc)
-import qualified Language.LSP.Types.Lens as Lens
+import qualified Language.LSP.Protocol.Lens as Lens
+import Language.LSP.Protocol.Message hiding (LookupFunc, parseClientMessage, parseServerMessage)
+import Language.LSP.Protocol.Types
 import Options.Applicative
 import System.Exit
 import System.IO
@@ -127,8 +128,8 @@ main = do
           liftIO $ writeToHandle stdout $ A.encode x
 
   let logFn :: Loc -> LogSource -> LogLevel -> LogStr -> IO ()
-      logFn _loc _src level msg = sendToStdout $ NotificationMessage "2.0" SWindowLogMessage $ LogMessageParams {
-        _xtype = levelToType level
+      logFn _loc _src level msg = sendToStdout $ TNotificationMessage "2.0" SMethod_WindowLogMessage $ LogMessageParams {
+        _type_ = levelToType level
         , _message = T.decodeUtf8 $ fromLogStr msg
         }
 
@@ -165,15 +166,15 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
         Left err -> do
           logErr [i|Couldn't decode incoming message: #{err}|]
           liftIO $ writeToHandle wrappedIn (A.encode x)
-        Right (FromClientRsp meth msg) -> do
+        Right (ClientToServerRsp meth msg) -> do
           transformClientRsp meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
-        Right (FromClientReq meth msg) -> do
+        Right (ClientToServerReq meth msg) -> do
           let msgId = msg ^. Lens.id
           modifyMVar_ clientReqMap $ \m -> case updateClientRequestMap m msgId (SMethodAndParams meth (msg ^. Lens.params)) of
             Just m' -> return m'
             Nothing -> return m
           transformClientReq meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
-        Right (FromClientNot meth msg) ->
+        Right (ClientToServerNot meth msg) ->
           transformClientNot (liftIO . writeToHandle wrappedIn . A.encode) meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
 
 readWrappedOut :: (
@@ -188,15 +189,15 @@ readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
         Left err -> do
           logErr [i|Couldn't decode server message: #{A.encode x} (#{err})|]
           sendToStdout x
-        Right (FromServerNot meth msg) ->
+        Right (ServerToClientNot meth msg) ->
           transformServerNot meth msg >>= sendToStdout
-        Right (FromServerReq meth msg) -> do
+        Right (ServerToClientReq meth msg) -> do
           let msgId = msg ^. Lens.id
           modifyMVar_ serverReqMap $ \m -> case updateServerRequestMap m msgId (SMethodAndParams meth (msg ^. Lens.params)) of
             Just m' -> return m'
             Nothing -> return m
           sendToStdout (transformServerReq meth msg)
-        Right (FromServerRsp meth initialParams msg) ->
+        Right (ServerToClientRsp meth initialParams msg) ->
           transformServerRsp meth initialParams msg >>= sendToStdout
 
 readWrappedErr :: MonadLoggerIO m => Handle -> m ()
@@ -204,13 +205,13 @@ readWrappedErr wrappedErr = forever $ do
   line <- liftIO (hGetLine wrappedErr)
   logErrorN [i|(wrapped stderr) #{line}|]
 
-lookupServerId :: ServerRequestMap -> LookupFunc 'FromServer
+lookupServerId :: ServerRequestMap -> LookupFunc 'ServerToClient
 lookupServerId serverReqMap sid = do
   case lookupServerRequestMap serverReqMap sid of
     Nothing -> Nothing
     Just (SMethodAndParams meth initialParams) -> Just (meth, initialParams)
 
-lookupClientId :: ClientRequestMap -> LookupFunc 'FromClient
+lookupClientId :: ClientRequestMap -> LookupFunc 'ClientToServer
 lookupClientId clientReqMap sid = do
   case lookupClientRequestMap clientReqMap sid of
     Nothing -> Nothing
@@ -225,8 +226,8 @@ writeToHandle h bytes = do
   hFlush h
 
 levelToType :: LogLevel -> MessageType
-levelToType LevelDebug = MtLog
-levelToType LevelInfo = MtInfo
-levelToType LevelWarn = MtWarning
-levelToType LevelError = MtError
-levelToType (LevelOther _typ) = MtInfo
+levelToType LevelDebug = MessageType_Log
+levelToType LevelInfo = MessageType_Info
+levelToType LevelWarn = MessageType_Warning
+levelToType LevelError = MessageType_Error
+levelToType (LevelOther _typ) = MessageType_Info

@@ -7,7 +7,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Rope as Rope
 import Language.LSP.Transformer
-import Language.LSP.Types
+import Language.LSP.Protocol.Types
 
 
 data HeadTailTransformer = HeadTailTransformer [Text] [Text] UInt UInt UInt

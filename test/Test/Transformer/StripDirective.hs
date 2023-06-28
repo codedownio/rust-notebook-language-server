@@ -4,7 +4,7 @@ module Test.Transformer.StripDirective where
 
 import Language.LSP.Notebook.StripDirective
 import Language.LSP.Transformer
-import Language.LSP.Types hiding (line)
+import Language.LSP.Protocol.Types hiding (line)
 import Test.Sandwich
 
 

@@ -11,21 +11,24 @@ import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Data.Aeson as A
+import Data.Proxy
 import Data.String.Interpolate
 import qualified Data.Text as T
 import Data.Time
+import GHC.TypeLits (sameSymbol)
+import Language.LSP.Protocol.Lens as Lens
+import Language.LSP.Protocol.Message
+import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
-import Language.LSP.Types
-import Language.LSP.Types.Lens as Lens
 import Transform.Common
 import Transform.Util
 import UnliftIO.Concurrent
 
 
-type ClientReqMethod m = SMethod (m :: Method 'FromClient 'Request)
+type ClientReqMethod m = SMethod (m :: Method 'ClientToServer 'Request)
 
 
-transformClientReq :: (TransformerMonad n, HasJSON (RequestMessage m)) => ClientReqMethod m -> RequestMessage m -> n (RequestMessage m)
+transformClientReq :: (TransformerMonad n, HasJSON (TRequestMessage m)) => ClientReqMethod m -> TRequestMessage m -> n (TRequestMessage m)
 transformClientReq meth msg = do
   start <- liftIO getCurrentTime
   p' <- transformClientReq' meth (msg ^. params)
@@ -36,14 +39,14 @@ transformClientReq meth msg = do
 
 transformClientReq' :: forall m n. (TransformerMonad n) => ClientReqMethod m -> MessageParams m -> n (MessageParams m)
 
-transformClientReq' SInitialize params = do
+transformClientReq' SMethod_Initialize params = do
   -- Store the non-modified params, so we can access the unmodified rootUri
   asks transformerInitializeParams >>= flip modifyMVar_ (\_ -> return $ Just params)
 
   dir <- asks transformerShadowDir
   pure $ params
-    & set rootPath (Just (T.pack dir))
-    & set rootUri (Just (filePathToUri dir))
+    & set rootPath (Just (InL (T.pack dir)))
+    & set rootUri (InL (filePathToUri dir))
     & set (capabilities . textDocument . _Just . synchronization) (Just $ TextDocumentSyncClientCapabilities {
                                                                       _dynamicRegistration = Just False
                                                                       , _willSave = Just True
@@ -51,24 +54,25 @@ transformClientReq' SInitialize params = do
                                                                       , _didSave = Just True
                                                                       })
 
-transformClientReq' STextDocumentCodeAction params = whenAnything params $ withTransformer params $ doTransformUriAndRange @m params
-transformClientReq' STextDocumentCodeLens params = whenAnything params $ withTransformer params $ doTransformUri @m params
-transformClientReq' STextDocumentCompletion params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentDefinition params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentDocumentHighlight params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentDocumentSymbol params = whenAnything params $ withTransformer params $ doTransformUri @m params
-transformClientReq' STextDocumentHover params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentImplementation params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
-transformClientReq' STextDocumentTypeDefinition params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' SMethod_TextDocumentCodeAction params = whenAnything params $ withTransformer params $ doTransformUriAndRange @m params
+transformClientReq' SMethod_TextDocumentCodeLens params = whenAnything params $ withTransformer params $ doTransformUri @m params
+transformClientReq' SMethod_TextDocumentCompletion params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' SMethod_TextDocumentDefinition params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' SMethod_TextDocumentDocumentHighlight params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' SMethod_TextDocumentDocumentSymbol params = whenAnything params $ withTransformer params $ doTransformUri @m params
+transformClientReq' SMethod_TextDocumentHover params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' SMethod_TextDocumentImplementation params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
+transformClientReq' SMethod_TextDocumentTypeDefinition params = whenAnything params $ withTransformer params $ doTransformUriAndPosition @m params
 
 -- Custom methods provided by rust-analyzer
-transformClientReq' (SCustomMethod "rust-analyzer/analyzerStatus") val =
-  case A.fromJSON val of
+transformClientReq' (SMethod_CustomMethod p) val = case sameSymbol p (Proxy @"rust-analyzer/analyzerStatus") of
+  Just Refl -> case A.fromJSON val of
     A.Error err -> logErrorN [i|Failed to decode custom method "rust-analyzer/analyzerStatus": #{err}|] >> return val
     A.Success (TextDocumentIdentifier uri) ->
       whenAnything' uri val $
         withTransformer val $ \(DocumentState {newUri}) ->
           return $ A.toJSON $ TextDocumentIdentifier newUri
+  Nothing -> return val
 
 transformClientReq' _ params = return params
 

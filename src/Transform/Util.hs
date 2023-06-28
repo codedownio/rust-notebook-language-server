@@ -14,15 +14,13 @@ import Control.Monad.Reader
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Map as M
-import Data.Maybe
 import Data.String.Interpolate
 import Data.Text
 import qualified Data.Text as T
 import Language.LSP.Notebook
+import Language.LSP.Protocol.Lens as Lens
+import Language.LSP.Protocol.Types as LSP
 import Language.LSP.Transformer
-import Language.LSP.Types as LSP
-import Language.LSP.Types.Capabilities
-import Language.LSP.Types.Lens as Lens
 import Network.URI
 import System.FilePath
 import qualified System.Random as R
@@ -180,6 +178,3 @@ addExtensionToUri ext u@(Uri t) = case parseURIReference (T.unpack t) of
 
 flipTuple :: (b, a) -> (a, b)
 flipTuple (x, y) = (y, x)
-
-mapMaybeList :: (a -> Maybe b) -> List a -> List b
-mapMaybeList f (LSP.List xs) = LSP.List (mapMaybe f xs)

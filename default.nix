@@ -1,9 +1,9 @@
 { mkDerivation, aeson, base, bytestring, containers, exceptions
 , filepath, hpack, lens, lens-regex-pcre, lib, lsp-types
 , monad-logger, mtl, myers-diff, network-uri, optparse-applicative
-, pcre-light, process, QuickCheck, random, retry, safe, sandwich
-, string-interpolate, text, text-rope, time, unix, unliftio
-, unliftio-core
+, pcre-light, process, QuickCheck, random, retry, row-types, safe
+, sandwich, string-interpolate, text, text-rope, time, unix
+, unliftio, unliftio-core
 }:
 mkDerivation {
   pname = "rust-notebook-language-server";
@@ -13,8 +13,8 @@ mkDerivation {
   isExecutable = true;
   libraryHaskellDepends = [
     aeson base containers filepath lens lens-regex-pcre lsp-types
-    monad-logger mtl myers-diff network-uri pcre-light random safe
-    string-interpolate text text-rope time unliftio unliftio-core
+    monad-logger mtl myers-diff network-uri pcre-light random row-types
+    safe string-interpolate text text-rope time unliftio unliftio-core
   ];
   libraryToolDepends = [ hpack ];
   executableHaskellDepends = [
@@ -23,8 +23,8 @@ mkDerivation {
     unix unliftio unliftio-core
   ];
   testHaskellDepends = [
-    base exceptions lsp-types monad-logger QuickCheck sandwich
-    string-interpolate text unliftio
+    base exceptions lsp-types monad-logger QuickCheck row-types
+    sandwich string-interpolate text unliftio
   ];
   doCheck = false;
   prePatch = "hpack";

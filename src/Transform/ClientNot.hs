@@ -17,9 +17,10 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.Rope as Rope
 import Data.Time
 import Language.LSP.Notebook
+import Language.LSP.Protocol.Lens as Lens
+import Language.LSP.Protocol.Message
+import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
-import Language.LSP.Types
-import Language.LSP.Types.Lens as Lens
 import System.FilePath
 import Transform.Common
 import Transform.ServerRsp.Hover (mkDocRegex)
@@ -28,11 +29,11 @@ import UnliftIO.Directory
 import UnliftIO.MVar
 
 
-type ClientNotMethod m = SMethod (m :: Method 'FromClient 'Notification)
+type ClientNotMethod m = SMethod (m :: Method 'ClientToServer 'Notification)
 
 transformClientNot :: (
-  TransformerMonad n, HasJSON (NotificationMessage m)
-  ) => (forall (o :: Method 'FromClient 'Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> NotificationMessage m -> n (NotificationMessage m)
+  TransformerMonad n, HasJSON (TNotificationMessage m)
+  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ()) -> ClientNotMethod m -> TNotificationMessage m -> n (TNotificationMessage m)
 transformClientNot sendExtraNotification meth msg = do
   start <- liftIO getCurrentTime
   p' <- transformClientNot' sendExtraNotification meth (msg ^. params)
@@ -43,9 +44,9 @@ transformClientNot sendExtraNotification meth msg = do
 
 transformClientNot' :: (
   TransformerMonad n
-  ) => (forall (o :: Method 'FromClient 'Notification). ToJSON (NotificationMessage o) => NotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
+  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
 
-transformClientNot' _ STextDocumentDidOpen params = whenAnything params $ \u -> do
+transformClientNot' _ SMethod_TextDocumentDidOpen params = whenAnything params $ \u -> do
   let t = params ^. (textDocument . text)
   let ls = Rope.fromText t
   let txParams = if isNotebook u then transformerParams else idTransformerParams
@@ -80,32 +81,32 @@ transformClientNot' _ STextDocumentDidOpen params = whenAnything params $ \u -> 
          & set (textDocument . text) (Rope.toText ls')
          & set (textDocument . uri) newUri
 
-transformClientNot' sendExtraNotification STextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, origUri, newUri, newPath}) -> do
+transformClientNot' sendExtraNotification SMethod_TextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, origUri, newUri, newPath}) -> do
   let txParams = if isNotebook origUri then transformerParams else idTransformerParams
-  let (List changeEvents) = params ^. contentChanges
+  let changeEvents = params ^. contentChanges
   let (changeEvents', tx') = handleDiffMulti txParams before changeEvents tx
   let after = applyChanges changeEvents before
 
   whenServerCapabilitiesSatisfy supportsWillSave $ \_ ->
-    sendExtraNotification $ NotificationMessage "2.0" STextDocumentWillSave $ WillSaveTextDocumentParams {
+    sendExtraNotification $ TNotificationMessage "2.0" SMethod_TextDocumentWillSave $ WillSaveTextDocumentParams {
       _textDocument = TextDocumentIdentifier newUri
-      , _reason = SaveAfterDelay
+      , _reason = TextDocumentSaveReason_AfterDelay
       }
 
   liftIO $ T.writeFile newPath (Rope.toText after)
 
   whenServerCapabilitiesSatisfy supportsSave $ \maybeSaveOptions ->
-    sendExtraNotification $ NotificationMessage "2.0" STextDocumentDidSave $ DidSaveTextDocumentParams {
+    sendExtraNotification $ TNotificationMessage "2.0" SMethod_TextDocumentDidSave $ DidSaveTextDocumentParams {
       _textDocument = TextDocumentIdentifier newUri
       , _text = case maybeSaveOptions of
           Just (SaveOptions {_includeText=(Just True)}) -> Just (Rope.toText after)
           _ -> Nothing
       }
 
-  return (ds { transformer = tx', curLines = after }, params & set contentChanges (List changeEvents')
+  return (ds { transformer = tx', curLines = after }, params & set contentChanges changeEvents'
                                                              & set (textDocument . uri) newUri)
 
-transformClientNot' _ STextDocumentDidClose params = whenAnything params $ \u -> do
+transformClientNot' _ SMethod_TextDocumentDidClose params = whenAnything params $ \u -> do
   TransformerState {..} <- ask
   maybeDocumentState <- modifyMVar transformerDocuments (return . flipTuple . M.updateLookupWithKey (\_ _ -> Nothing) (getUri u))
   newUri <- case maybeDocumentState of

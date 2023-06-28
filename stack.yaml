@@ -8,7 +8,10 @@ extra-deps:
 - git: https://github.com/codedownio/myers-diff.git
   commit: 600d2c4614266e8412cd3aa64e08f47b7060d4c2
 
+- lsp-types-2.0.0.1
+- row-types-1.0.1.2
+
 # - language-rust-0.2.0.27
 
-- github: harpocrates/language-rust
-  commit: 9d509c450d009cc99f1180b3f2f30247dfb1cfce
+# - github: harpocrates/language-rust
+#   commit: 9d509c450d009cc99f1180b3f2f30247dfb1cfce

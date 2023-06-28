@@ -12,8 +12,8 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Language.LSP.Notebook
 import Language.LSP.Transformer
-import Language.LSP.Types
-import Language.LSP.Types.Lens as Lens
+import Language.LSP.Protocol.Types
+import Language.LSP.Protocol.Lens as Lens
 import System.FilePath
 import Transform.Util
 import UnliftIO.Directory

@@ -13,88 +13,95 @@ import Data.Aeson as A
 import Data.Maybe
 import Data.String.Interpolate
 import Data.Time
-import Language.LSP.Types
-import Language.LSP.Types.Lens as Lens
+import Language.LSP.Protocol.Lens as Lens
+import Language.LSP.Protocol.Message
+import Language.LSP.Protocol.Types as LSP
 import Transform.Common
 import Transform.ServerRsp.Hover
 import Transform.Util
 import UnliftIO.MVar
 
 
-type ServerRspMethod m = SMethod (m :: Method 'FromClient 'Request)
+type ServerRspMethod m = SMethod (m :: Method 'ClientToServer 'Request)
 
 transformServerRsp :: (
-  TransformerMonad n, HasJSON (ResponseMessage m)
-  ) => ServerRspMethod m -> MessageParams m -> ResponseMessage m -> n (ResponseMessage m)
-transformServerRsp meth initialParams msg = do
-  case msg ^. result of
-    Left _err -> return msg
-    Right ret -> do
-      start <- liftIO getCurrentTime
-      p' <- transformServerRsp' meth initialParams ret
-      stop <- liftIO getCurrentTime
-      let msg' = set result (Right p') msg
-      when (msg' /= msg) $ logDebugN [i|Transforming server rsp #{meth} in #{diffUTCTime stop start}: (#{A.encode msg} --> #{A.encode msg'})|]
-      return $ set result (Right p') msg
+  TransformerMonad n, HasJSON (TResponseMessage m)
+  ) => ServerRspMethod m -> MessageParams m -> TResponseMessage m -> n (TResponseMessage m)
+transformServerRsp meth initialParams msg = case msg ^. result of
+  Left _err -> return msg
+  Right ret -> do
+    start <- liftIO getCurrentTime
+    p' <- transformServerRsp' meth initialParams ret
+    stop <- liftIO getCurrentTime
+    let msg' = set result (Right p') msg
+    when (msg' /= msg) $ logDebugN [i|Transforming server rsp #{meth} in #{diffUTCTime stop start}: (#{A.encode msg} --> #{A.encode msg'})|]
+    return $ set result (Right p') msg
 
-transformServerRsp' :: (TransformerMonad n) => ServerRspMethod m -> MessageParams m -> ResponseResult m -> n (ResponseResult m)
+type ResponseResult m = Either ResponseError (MessageResult m)
 
-transformServerRsp' SInitialize _initialParams result = do
+transformServerRsp' :: (TransformerMonad n) => ServerRspMethod m -> MessageParams m -> MessageResult m -> n (MessageResult m)
+
+transformServerRsp' SMethod_Initialize _initialParams result = do
   initializeResultVar <- asks transformerInitializeResult
   modifyMVar_ initializeResultVar (\_ -> return $ Just result)
   return result
 
-transformServerRsp' STextDocumentCompletion initialParams result =
+transformServerRsp' SMethod_TextDocumentCompletion initialParams result =
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) -> do
     let fixupCompletionEdit Nothing = Nothing
-        fixupCompletionEdit (Just (CompletionEditText edit)) = CompletionEditText <$> (untransformRanged tx edit)
-        fixupCompletionEdit (Just (CompletionEditInsertReplace (InsertReplaceEdit newText insert replace))) =
-          CompletionEditInsertReplace <$> (InsertReplaceEdit newText <$> untransformRanged tx insert <*> untransformRanged tx replace)
+        fixupCompletionEdit (Just (InL edit)) = InL <$> (untransformRanged tx edit)
+        fixupCompletionEdit (Just (InR (InsertReplaceEdit newText insert replace))) =
+          InR <$> (InsertReplaceEdit newText <$> untransformRanged tx insert <*> untransformRanged tx replace)
 
     let fixupItem :: CompletionItem -> CompletionItem
         fixupItem item = item
          & over textEdit fixupCompletionEdit
-         & over (additionalTextEdits . _Just) (mapMaybeList (untransformRanged tx))
-
-    let fixupItems :: List CompletionItem -> List CompletionItem
-        fixupItems (List xs) = List (fmap fixupItem xs)
+         & over (additionalTextEdits . _Just) (mapMaybe (untransformRanged tx))
 
     case result of
-      (InL items) -> return (InL (fixupItems items))
-      (InR completionList) -> return (InR (completionList & over items fixupItems))
+      (InL items) -> return (InL (fmap fixupItem items))
+      (InR (InL completionList)) -> return (InR (InL (completionList & over items (fmap fixupItem))))
+      (InR (InR null)) -> return $ InR $ InR null
 
-transformServerRsp' STextDocumentDocumentHighlight initialParams result@(List inner) =
-  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
-    return $ List $ mapMaybe (untransformRanged tx) inner
-
-transformServerRsp' STextDocumentHover initialParams result =
+transformServerRsp' SMethod_TextDocumentDocumentHighlight initialParams result =
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     case result of
-      Nothing -> return Nothing
-      Just hov -> do
+      InL highlights -> return $ InL $ mapMaybe (untransformRanged tx) highlights
+      InR null -> return $ InR null
+
+transformServerRsp' SMethod_TextDocumentHover initialParams result =
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
+    case result of
+      InR null -> return $ InR null
+      InL hov -> do
         hov' <- fixupHoverText hov
-        return $ untransformRangedMaybe tx hov'
+        return $ case untransformRangedMaybe tx hov' of
+          Just ret -> InL ret
+          Nothing -> InR LSP.Null
 
-transformServerRsp' STextDocumentDocumentSymbol initialParams result =
+transformServerRsp' SMethod_TextDocumentDocumentSymbol initialParams result =
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     case result of
-      InL (List documentSymbols) -> return $ InL $ List (documentSymbols & filter (not . ignoreSymbol)
+      InL symbolInformations -> return $ InL (symbolInformations & filter (not . ignoreSymbol)
+                                                                 & mapMaybe (traverseOf (location . range) (untransformRange tx)))
+      InR (InL documentSymbols) -> return $ InR $ InL $ (documentSymbols & filter (not . ignoreSymbol)
                                                                          & mapMaybe (traverseOf range (untransformRange tx))
                                                                          & mapMaybe (traverseOf selectionRange (untransformRange tx)))
-      InR (List symbolInformations) -> return $ InR $ List (symbolInformations & filter (not . ignoreSymbol)
-                                                                               & mapMaybe (traverseOf (location . range) (untransformRange tx)))
+      InR (InR LSP.Null) -> return $ InR $ InR LSP.Null
   where
     ignoreSymbol _ = False
 
-transformServerRsp' STextDocumentCodeAction initialParams result@(List xs) =
+transformServerRsp' SMethod_TextDocumentCodeAction _initialParams (InR null) = return $ InR null
+transformServerRsp' SMethod_TextDocumentCodeAction initialParams (InL result) = (InL <$>) $
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {}) -> do
-    List <$> filterM (fmap not . isInternalReferringCodeAction) xs
+    filterM (fmap not . isInternalReferringCodeAction) result
   where
     isInternalReferringCodeAction (InL _command) = pure False
     isInternalReferringCodeAction (InR _codeAction) = pure False
 
-transformServerRsp' STextDocumentCodeLens initialParams result@(List xs) =
+transformServerRsp' SMethod_TextDocumentCodeLens _initialParams (InR null) = return $ InR null
+transformServerRsp' SMethod_TextDocumentCodeLens initialParams (InL result) = (InL <$>) $
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) -> do
-    return $ List $ mapMaybe (untransformRanged tx) xs
+    return $ mapMaybe (untransformRanged tx) result
 
 transformServerRsp' _ _ result = return result
