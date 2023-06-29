@@ -1,6 +1,6 @@
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Transform.ClientNot where
@@ -33,7 +33,10 @@ type ClientNotMethod m = SMethod (m :: Method 'ClientToServer 'Notification)
 
 transformClientNot :: (
   TransformerMonad n, HasJSON (TNotificationMessage m)
-  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ()) -> ClientNotMethod m -> TNotificationMessage m -> n (TNotificationMessage m)
+  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ())
+    -> ClientNotMethod m
+    -> TNotificationMessage m
+    -> n (TNotificationMessage m)
 transformClientNot sendExtraNotification meth msg = do
   start <- liftIO getCurrentTime
   p' <- transformClientNot' sendExtraNotification meth (msg ^. params)
@@ -44,7 +47,10 @@ transformClientNot sendExtraNotification meth msg = do
 
 transformClientNot' :: (
   TransformerMonad n
-  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ()) -> ClientNotMethod m -> MessageParams m -> n (MessageParams m)
+  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ())
+    -> ClientNotMethod m
+    -> MessageParams m
+    -> n (MessageParams m)
 
 transformClientNot' _ SMethod_TextDocumentDidOpen params = whenAnything params $ \u -> do
   let t = params ^. (textDocument . text)
