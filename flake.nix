@@ -40,11 +40,22 @@
           ]
         );
 
+        allVersionsAttrset = pkgs.lib.listToAttrs allVersions;
+
       in
         rec {
-          packages = rec {
+          packages = allVersionsAttrset // (rec {
             inherit (pkgs) cabal2nix;
             # inherit lsp-types;
+
+            default = allVersionsAttrset.ghc945;
+            defaultStatic = allVersionsAttrset.ghc945-static;
+
+            # No GMP (we test the dynamic builds to make sure GMP doesn't end up in the static builds)
+            verify-no-gmp = pkgs.writeShellScriptBin "verify-no-gmp.sh" ''
+              echo "Checking for libgmp in ${default}/bin/rust-notebook-language-server"
+              (echo "$(ldd ${default}/bin/rust-notebook-language-server)" | grep libgmp) && exit 1
+            '';
 
             all = with pkgs.lib; pkgs.linkFarm "rust-notebook-language-server-all" (
               map (x: {
@@ -52,7 +63,7 @@
                 path = x.value;
               }) allVersions
             );
-          } // pkgs.lib.listToAttrs allVersions;
+          });
 
           inherit flake;
 
