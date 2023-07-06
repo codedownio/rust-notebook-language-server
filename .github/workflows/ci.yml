@@ -45,6 +45,16 @@ jobs:
       run: |
         stack test --system-ghc --test-arguments --print
 
+  no-gmp:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: No GMP
+      run: |
+        nix run .#verify-no-gmp
+
   nix:
     name: Nix
     runs-on: ubuntu-latest
