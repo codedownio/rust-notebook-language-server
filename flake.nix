@@ -19,23 +19,41 @@
                 src = gitignore.lib.gitignoreSource ./.;
                 evalSystem = "x86_64-linux";
                 inherit compiler-nix-name;
+
+                # TODO: how do you pass module args? This isn't working at the moment, so we need to
+                # manually strip in the packageForGitHub function below.
+                # userDefaults = {
+                #   dontStrip = false;
+                #   packages.rust-notebook-language-server.components.exes.rust-notebook-language-server.dontStrip = false;
+                # };
               };
           })
         ];
 
         pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
 
-        # lsp-types = pkgs.haskell.packages.ghc8107.callPackage ./lsp-types.nix {};
-
         flake = compiler-nix-name: (pkgs.hixProject compiler-nix-name).flake {};
         flakeStatic = compiler-nix-name: (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
+
+        packageForGitHub = rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}" { nativeBuildInputs = [pkgs.binutils]; } ''
+          name="rust-notebook-language-server-${rnls.version}-x86_64-linux"
+
+          mkdir -p $out
+          cp ${rnls}/bin/rust-notebook-language-server $out/$name
+
+          cd $out
+          chmod u+w "$name"
+          strip "$name"
+
+          tar -czvf $name.tar.gz $name
+        '';
 
         allVersions = with pkgs.lib; (
           concatMap (name: [
             (nameValuePair name (flake name).packages."rust-notebook-language-server:exe:rust-notebook-language-server")
             (nameValuePair "${name}-static" (flakeStatic name).packages."rust-notebook-language-server:exe:rust-notebook-language-server")
+            (nameValuePair "${name}-static-github" (packageForGitHub (flakeStatic name).packages."rust-notebook-language-server:exe:rust-notebook-language-server"))
           ]) [
-            # "ghc902"
             "ghc945"
           ]
         );
@@ -46,7 +64,6 @@
         rec {
           packages = allVersionsAttrset // (rec {
             inherit (pkgs) cabal2nix;
-            # inherit lsp-types;
 
             default = allVersionsAttrset.ghc945;
             defaultStatic = allVersionsAttrset.ghc945-static;
