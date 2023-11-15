@@ -1,12 +1,20 @@
 
-resolver: lts-21.1
+resolver: lts-21.17
 
 packages:
 - .
 
+nix:
+  # pure: false
+  packages:
+  - zlib
+  - pcre
+  path:
+  - "nixpkgs=/home/tom/tools/nixpkgs"
+
 extra-deps:
 - git: https://github.com/codedownio/myers-diff.git
-  commit: 600d2c4614266e8412cd3aa64e08f47b7060d4c2
+  commit: 3683ab4e052347bc47eb5546361f47bcd8c0fa58
 
 # - language-rust-0.2.0.27
 
