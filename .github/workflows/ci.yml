@@ -81,4 +81,4 @@ jobs:
 
     - name: Build
       run: |
-        nix build .#ghc945-static
+        nix build .#ghc947-static

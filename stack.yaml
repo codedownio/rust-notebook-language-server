@@ -1,8 +1,15 @@
-
 resolver: lts-21.21
 
 packages:
 - .
+
+nix:
+  # pure: false
+  packages:
+  - zlib
+  - pcre
+  path:
+  - "nixpkgs=/home/tom/tools/nixpkgs"
 
 extra-deps:
 - myers-diff-0.3.0.0

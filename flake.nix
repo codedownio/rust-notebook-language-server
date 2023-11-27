@@ -65,8 +65,8 @@
           packages = allVersionsAttrset // (rec {
             inherit (pkgs) cabal2nix;
 
-            default = allVersionsAttrset.ghc945;
-            defaultStatic = allVersionsAttrset.ghc945-static;
+            default = allVersionsAttrset.ghc947;
+            defaultStatic = allVersionsAttrset.ghc947-static;
 
             # No GMP (we test the dynamic builds to make sure GMP doesn't end up in the static builds)
             verify-no-gmp = pkgs.writeShellScriptBin "verify-no-gmp.sh" ''

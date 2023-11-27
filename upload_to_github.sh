@@ -3,6 +3,12 @@
 
 set -e
 
+for arg do
+    shift
+
+    [ "$arg" = "--dry-run" ] && DRY_RUN=t && continue
+done
+
 BUILT=$(nix build .#ghc945-static-github --no-link --json | jq -r '.[0].outputs.out')
 echo "Built:"
 ls -lh "$BUILT"
@@ -14,6 +20,12 @@ ARTIFACT_LINUX_ARCHIVE="$ARTIFACT_LINUX.tar.gz"
 
 # Smoke check
 $ARTIFACT_LINUX --help 2>&1 > /dev/null
+
+echo "Got artifact: $ARTIFACT_LINUX"
+
+if [[ -n "$DRY_RUN" ]]; then
+  exit $?
+fi
 
 TAG=v"$VERSION"
 echo "Tagging at $TAG"
