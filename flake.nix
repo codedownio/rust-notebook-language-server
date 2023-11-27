@@ -54,7 +54,7 @@
             (nameValuePair "${name}-static" (flakeStatic name).packages."rust-notebook-language-server:exe:rust-notebook-language-server")
             (nameValuePair "${name}-static-github" (packageForGitHub (flakeStatic name).packages."rust-notebook-language-server:exe:rust-notebook-language-server"))
           ]) [
-            "ghc945"
+            "ghc947"
           ]
         );
 

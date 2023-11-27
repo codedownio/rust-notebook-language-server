@@ -1,12 +1,11 @@
 
-resolver: lts-21.1
+resolver: lts-21.21
 
 packages:
 - .
 
 extra-deps:
-- git: https://github.com/codedownio/myers-diff.git
-  commit: 600d2c4614266e8412cd3aa64e08f47b7060d4c2
+- myers-diff-0.3.0.0
 
 # - language-rust-0.2.0.27
 
