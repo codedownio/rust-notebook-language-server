@@ -119,10 +119,10 @@ test-suite rust-notebook-language-server-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Test.Common
       Test.Hover
       Test.Transformer.HeadTail
       Test.Transformer.StripDirective
+      TestLib.Common
       TestLib.Generators
       Paths_rust_notebook_language_server
   hs-source-dirs:

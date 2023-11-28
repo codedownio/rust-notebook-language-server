@@ -6,8 +6,8 @@ import qualified Data.List as L
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Rope as Rope
-import Language.LSP.Transformer
 import Language.LSP.Protocol.Types
+import Language.LSP.Transformer
 
 
 data HeadTailTransformer = HeadTailTransformer [Text] [Text] UInt UInt UInt
@@ -39,6 +39,7 @@ instance Transformer HeadTailTransformer where
   transformPosition _ (HeadTailTransformer _ _ s _d _e) (Position l c) = Just $ Position (l + s) c
 
   untransformPosition _ (HeadTailTransformer _ _ s d _e) (Position l c)
+    | l < s = Nothing
     | l >= s + d = Nothing
     | otherwise = Just $ Position (l - s) c
 

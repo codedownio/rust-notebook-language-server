@@ -1,9 +1,9 @@
 
-module Test.Common where
+module TestLib.Common where
 
 import Control.Monad.Catch
-import Language.LSP.Transformer
 import Language.LSP.Protocol.Types
+import Language.LSP.Transformer
 import Test.Sandwich
 
 
