@@ -9,11 +9,11 @@ for arg do
     [ "$arg" = "--dry-run" ] && DRY_RUN=t && continue
 done
 
-BUILT=$(nix build .#ghc945-static-github --no-link --json | jq -r '.[0].outputs.out')
+BUILT=$(nix build .#ghc947-static-github --no-link --json | jq -r '.[0].outputs.out')
 echo "Built:"
 ls -lh "$BUILT"
 
-VERSION="$(nix eval .#ghc945-static.version --raw)"
+VERSION="$(nix eval .#ghc947-static.version --raw)"
 
 ARTIFACT_LINUX="$BUILT/rust-notebook-language-server-$VERSION-x86_64-linux"
 ARTIFACT_LINUX_ARCHIVE="$ARTIFACT_LINUX.tar.gz"
