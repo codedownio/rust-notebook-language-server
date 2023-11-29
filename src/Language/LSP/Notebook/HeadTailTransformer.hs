@@ -11,7 +11,7 @@ import Language.LSP.Transformer
 
 
 data HeadTailTransformer = HeadTailTransformer [Text] [Text] UInt UInt UInt
-  deriving (Show)
+  deriving (Show, Eq)
 
 instance Transformer HeadTailTransformer where
   type Params HeadTailTransformer = ([Text], [Text])

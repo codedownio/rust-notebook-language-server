@@ -123,7 +123,9 @@ test-suite rust-notebook-language-server-test
       Test.Transformer.HeadTail
       Test.Transformer.StripDirective
       TestLib.Common
+      TestLib.Core
       TestLib.Generators
+      TestLib.Util
       Paths_rust_notebook_language_server
   hs-source-dirs:
       test
@@ -148,10 +150,14 @@ test-suite rust-notebook-language-server-test
     , exceptions
     , lsp-types >=2.0.0.1
     , monad-logger
+    , myers-diff
+    , quickcheck-instances
     , row-types
     , rust-notebook-language-server
     , sandwich
+    , sandwich-quickcheck
     , string-interpolate
     , text
+    , text-rope
     , unliftio
   default-language: Haskell2010

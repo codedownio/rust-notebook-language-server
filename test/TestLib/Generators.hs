@@ -3,25 +3,22 @@
 
 module TestLib.Generators (
   arbitrarySingleLineChange
-  , testChange
-  , testChange'
-
-  , isSingleLineChange
-  , mkChange
-  , quickCheckSingleProp
+  , arbitraryChange
   ) where
 
-import Control.Monad.IO.Class
-import Control.Monad.Logger
+import Data.Diff.Myers
+import qualified Data.Diff.Types as DT
+import Data.Function
 import qualified Data.List as L
 import Data.Row.Records
 import Data.Text as T
-import GHC.Stack
+import Data.Text.Rope (Rope)
+import qualified Data.Text.Rope as Rope
 import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
 import Test.QuickCheck as Q
-import Test.Sandwich
-import UnliftIO.Exception
+import Test.QuickCheck.Instances.Text ()
+import TestLib.Util
 
 
 arbitrarySingleLineChange :: Doc -> Gen TextDocumentContentChangeEvent
@@ -37,58 +34,102 @@ arbitrarySingleLineChange (docToList -> docLines) = do
 
   pure $ TextDocumentContentChangeEvent $ InL (#range .== (Range (p lineNo pos1) (p lineNo pos2)) .+ #rangeLength .== Nothing .+ #text .== (T.pack toInsert))
 
+arbitraryChange :: Doc -> Gen TextDocumentContentChangeEvent
+arbitraryChange = undefined
 
-testChange :: forall a. (
-  Transformer a, Eq a, Show a
-  ) => Params a -> Doc -> TextDocumentContentChangeEvent -> Property
-testChange = testChange' @a (const [])
-
-testChange' :: forall a. (
-  Transformer a, Eq a, Show a
-  ) => ([TextDocumentContentChangeEvent] -> [Property]) -> Params a -> Doc -> TextDocumentContentChangeEvent -> Property
-testChange' extraProps params docLines change = conjoin ([
-  -- Applying the change' returned from handleDiff to the projected before value gives expected projected value
-  afterFromChange' === projectedAfter
-
-  -- The re-projected transformer matches the one we got back from handleDiff
-  , reprojectedTransformer === transformer'
-  ] <> extraProps changes)
-
+arbitraryChanges :: Doc -> Gen [TextDocumentContentChangeEvent]
+arbitraryChanges doc = do
+  (_, doc') <- arbitraryChangesSized doc
+  let events = diffTextsToChangeEventsConsolidate (Rope.toText doc) (Rope.toText doc')
+  return $ fmap repackChangeEvent events
   where
-    -- Expected un-projected document after the change
-    docLines' = applyChanges [change] docLines
+    repackChangeEvent (DT.ChangeEvent range text) = TextDocumentContentChangeEvent $ InL $ #range .== repackRange range .+ #rangeLength .== Nothing .+ #text .== text
+    repackRange (DT.Range (DT.Position l1 c1) (DT.Position l2 c2)) = Range (Position (fromIntegral l1) (fromIntegral c1)) (Position (fromIntegral l2) (fromIntegral c2))
 
-    (projectedBefore, transformer :: a) = project params docLines
-    (projectedAfter, reprojectedTransformer :: a) = project params docLines'
+-- * Newtypes to make it easier to generate certain combinations
 
-    (changes, transformer') = handleDiff params docLines change transformer
+newtype InsertOrDelete = InsertOrDelete (Rope, Rope)
+  deriving (Show, Eq)
+instance Arbitrary InsertOrDelete where
+  arbitrary = InsertOrDelete <$> oneof [arbitraryInsert, arbitraryDelete]
 
-    afterFromChange' = applyChanges changes projectedBefore
+newtype DocInsertOrDelete = DocInsertOrDelete (Rope, Rope)
+  deriving (Show, Eq)
+instance Arbitrary DocInsertOrDelete where
+  arbitrary = DocInsertOrDelete <$> oneof [arbitraryDocInsert, arbitraryDocDelete]
 
--- * Util
+newtype MultiInsertOrDelete = MultiInsertOrDelete (Rope, Rope)
+  deriving (Show, Eq)
+instance Arbitrary MultiInsertOrDelete where
+  arbitrary = arbitrary >>= (MultiInsertOrDelete <$>) . arbitraryChangesSized
 
-p :: Int -> Int -> Position
-p l c = Position (fromIntegral l) (fromIntegral c)
+newtype DocMultiInsertOrDelete = DocMultiInsertOrDelete (Rope, Rope)
+  deriving (Show, Eq)
+instance Arbitrary DocMultiInsertOrDelete where
+  arbitrary = arbitrary >>= (DocMultiInsertOrDelete <$>) . arbitraryChangesSized
 
-isSingleLineChange :: [TextDocumentContentChangeEvent] -> [Property]
-isSingleLineChange [TextDocumentContentChangeEvent (InL allFields)] =
-  [l1 === l2 .&&. (L.length (T.splitOn "\n" (allFields .! #text)) === 1)]
-  where
-    Range (Position l1 _c1) (Position l2 _c2) = allFields .! #range
-isSingleLineChange [TextDocumentContentChangeEvent (InR _textOnly)] =
-  [True === False]
-isSingleLineChange [] = []
-isSingleLineChange _ = error "Unexpected TextDocumentContentChangeEvent"
+-- * Apply a series of changes
 
-mkChange :: (UInt, UInt) -> (UInt, UInt) -> Maybe UInt -> Text -> TextDocumentContentChangeEvent
-mkChange (l1, c1) (l2, c2) maybeRangeLen t = TextDocumentContentChangeEvent $ InL (
-  #range .== (Range (Position l1 c1) (Position l2 c2))
-  .+ #rangeLength .== maybeRangeLen
-  .+ #text .== t
-  )
+arbitraryChangesSized :: Rope -> Gen (Rope, Rope)
+arbitraryChangesSized initial = sized $ \n -> flip fix (n, initial) $ \loop -> \case
+  (0, x) -> return (initial, x)
+  (j, cur) -> do
+    -- Prefer inserts to deletes at a 3:1 ratio
+    next <- oneof [arbitraryInsertOn cur, arbitraryInsertOn cur, arbitraryInsertOn cur, arbitraryDeleteOn cur]
+    loop (j - 1, next)
 
-quickCheckSingleProp :: (MonadIO m, Testable prop, MonadLogger m) => prop -> m ()
-quickCheckSingleProp prop = do
-  liftIO (quickCheckWithResult (stdArgs { Q.chatty = False, Q.maxSuccess = 1 }) prop) >>= \case
-    Q.Success {..} -> info (T.pack output)
-    x -> throwIO $ Reason (Just callStack) (output x)
+-- -- * Inserts and deletes
+
+-- | Arbitrarily insert up to size parameter characters
+arbitraryDocInsert :: Gen (Rope, Rope)
+arbitraryDocInsert = arbitraryDoc >>= (\initial -> (initial, ) <$> arbitraryInsertOn initial)
+
+arbitraryInsert :: Gen (Rope, Rope)
+arbitraryInsert = arbitrary >>= (\initial -> (initial, ) <$> arbitraryInsertOn initial)
+
+arbitraryInsertOn :: Rope -> Gen Rope
+arbitraryInsertOn initial = do
+  toInsert <- arbitrary
+
+  pos <- chooseBoundedIntegral (0, fromIntegral $ Rope.length initial)
+  let (x, y) = Rope.splitAt pos initial
+
+  return (x <> toInsert <> y)
+
+
+arbitraryDelete :: Gen (Rope, Rope)
+arbitraryDelete = arbitrary >>= (\initial -> (initial, ) <$> arbitraryDeleteOn initial)
+
+arbitraryDocDelete :: Gen (Rope, Rope)
+arbitraryDocDelete = arbitraryDoc >>= (\initial -> (initial, ) <$> arbitraryDeleteOn initial)
+
+-- | Arbitrarily delete up to size parameter characters
+arbitraryDeleteOn :: Rope -> Gen Rope
+arbitraryDeleteOn initial = do
+  size <- getSize
+  amountToDelete <- chooseBoundedIntegral (1, fromIntegral size)
+
+  pos1 <- chooseBoundedIntegral (0, max 0 (Rope.length initial - 1))
+  pos2 <- chooseBoundedIntegral (pos1, min (pos1 + amountToDelete) (Rope.length initial))
+
+  let (x, y) = Rope.splitAt pos1 initial
+  let (_, z) = Rope.splitAt (pos2 - pos1) y
+
+  return (x <> z)
+
+-- * Docs
+
+instance Arbitrary Rope where
+  arbitrary = Rope.fromText <$> arbitrary
+
+arbitraryLine :: Gen Text
+arbitraryLine = oneof [pure "", arbitrary]
+
+arbitraryDoc :: Gen Rope
+arbitraryDoc = listToDoc <$> listOf arbitraryLine
+
+arbitraryAlphanumericString :: Gen Rope
+arbitraryAlphanumericString = (Rope.fromText . T.pack) <$> listOf alphaNumericChar
+
+alphaNumericChar :: Gen Char
+alphaNumericChar = elements (['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ [' '])
