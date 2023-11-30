@@ -86,7 +86,7 @@ transformClientNot' sendExtraNotification SMethod_TextDocumentDidOpen params = w
                 | documentUuid == uuid -> runInIO $ doDidSave ds sendExtraNotification
                 | otherwise -> return ()
               _ -> return ()
-        , debounceFreq = 5_000_000
+        , debounceFreq = transformerDidSaveDebouncePeriodMs * 1000
         , debounceEdge = trailingEdge
         })
 

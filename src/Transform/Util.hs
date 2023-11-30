@@ -110,16 +110,18 @@ data TransformerState = TransformerState {
   , transformerInitializeParams :: MVar (Maybe InitializeParams)
   , transformerInitializeResult :: MVar (Maybe InitializeResult)
   , transformerShadowDir :: FilePath
+  , transformerDidSaveDebouncePeriodMs :: Int
   }
 
 -- * Transformers
 
-newTransformerState :: (MonadIO m) => FilePath -> m TransformerState
-newTransformerState shadowDir = TransformerState
+newTransformerState :: (MonadIO m) => FilePath -> Int -> m TransformerState
+newTransformerState shadowDir didSaveDebouncePeriodMs = TransformerState
   <$> newMVar mempty
   <*> newMVar Nothing
   <*> newMVar Nothing
   <*> pure shadowDir
+  <*> pure didSaveDebouncePeriodMs
 
 lookupTransformer :: TransformerMonad m => Uri -> m (Maybe DocumentState)
 lookupTransformer uri = do

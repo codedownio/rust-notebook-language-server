@@ -19,14 +19,14 @@ mkDerivation {
     unliftio-core uuid
   ];
   executableHaskellDepends = [
-    aeson auto-update base bytestring lens lsp-types monad-logger mtl
+    aeson base bytestring lens lsp-types monad-logger mtl
     optparse-applicative process retry safe string-interpolate text
-    unix unliftio unliftio-core uuid
+    unix unliftio unliftio-core
   ];
   testHaskellDepends = [
-    auto-update base exceptions lsp-types monad-logger myers-diff
-    QuickCheck quickcheck-instances row-types sandwich
-    sandwich-quickcheck string-interpolate text text-rope unliftio uuid
+    base exceptions lsp-types monad-logger myers-diff QuickCheck
+    quickcheck-instances row-types sandwich sandwich-quickcheck
+    string-interpolate text text-rope unliftio
   ];
   doCheck = false;
   license = "unknown";

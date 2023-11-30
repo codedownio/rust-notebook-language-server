@@ -52,6 +52,7 @@ data Options = Options {
   optWrappedLanguageServer :: Maybe FilePath
   , optWrappedArgs :: Maybe Text
   , optShadowDirTemplate :: Maybe FilePath
+  , optDidSaveDebouncePeriodMs :: Int
   , optLogLevel :: Maybe Text
   }
 
@@ -60,6 +61,7 @@ options = Options
   <$> optional (strOption (long "wrapped-server" <> help "Wrapped rust-analyzer binary"))
   <*> optional (strOption (long "wrapped-args" <> help "Extra arguments to rust-analyzer"))
   <*> optional (strOption (long "shadow-dir-template" <> help "Template for making a shadow project directory"))
+  <*> option auto (long "did-save-period-ms" <> showDefault <> help "Debounce period for sending textDocument/didSave notifications after changes" <> value 1000 <> metavar "INT")
   <*> optional (strOption (long "log-level" <> help "Log level (debug, info, warn, error)"))
 
 fullOpts :: ParserInfo Options
@@ -134,7 +136,7 @@ main = do
         }
 
   withMaybeShadowDir optShadowDirTemplate $ \maybeShadowDir -> do
-    transformerState <- newTransformerState maybeShadowDir
+    transformerState <- newTransformerState maybeShadowDir optDidSaveDebouncePeriodMs
 
     flip runLoggingT logFn $ filterLogger logFilterFn $ flip runReaderT transformerState $
       withAsync (readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout) $ \_wrappedOutAsync ->

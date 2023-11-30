@@ -6,7 +6,6 @@ extra-source-files:
 - CHANGELOG.md
 
 dependencies:
-- auto-update
 - base >= 4.7 && < 5
 # - language-rust
 - lsp-types >= 2.0.0.1
@@ -14,7 +13,6 @@ dependencies:
 - string-interpolate
 - text
 - unliftio
-- uuid
 
 default-extensions:
 - OverloadedStrings
@@ -40,6 +38,7 @@ library:
   source-dirs: src
   dependencies:
   - aeson
+  - auto-update
   - containers
   - filepath
   - lens
@@ -54,6 +53,7 @@ library:
   - text-rope
   - time
   - unliftio-core
+  - uuid
 
 executables:
   rust-notebook-language-server:
