@@ -36,7 +36,7 @@ whenAnythingByInitialParams :: (MonadLoggerIO n, HasTextDocument a b, HasUri b U
 whenAnythingByInitialParams params = whenAnything' (params ^. (textDocument . uri))
 
 whenAnything' :: (MonadLoggerIO n) => Uri -> a -> (Uri -> n a) -> n a
-whenAnything' uri _params notebookParams = notebookParams uri
+whenAnything' uri _params action = action uri
 
 -- * whenNotebook
 
@@ -90,6 +90,7 @@ type TransformerMonad n = (
 data DocumentState = DocumentState {
   transformer :: RustNotebookTransformer
   , curLines :: Doc
+  , curLines' :: Doc
   , origUri :: Uri
   , newUri :: Uri
   , newPath :: FilePath

@@ -21,6 +21,16 @@ import Data.Text (Text)
 -- parsed3 = inputStreamFromString [i|let mut message = "Hello ".to_owned();|]
 --         & parse' @(SourceFile Span)
 
+-- parsed4 = inputStreamFromString [__i|println!("Hello world");
+--                                      eprintln!("Hello error");
+--                                      format!("Hello {}", "world")|]
+--         & parse' @(SourceFile Span)
+
+-- parsed5 = inputStreamFromString [__i|println!("Hello world");
+--                                      eprintln!("Hello error");
+--                                      format!("Hello {}", "world");|]
+--         & parse' @(SourceFile Span)
+
 main :: IO ()
 main = do
   let _text = prints

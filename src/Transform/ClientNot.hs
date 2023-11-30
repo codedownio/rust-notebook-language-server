@@ -25,15 +25,19 @@ import System.FilePath
 import Transform.Common
 import Transform.ServerRsp.Hover (mkDocRegex)
 import Transform.Util
+import UnliftIO.Async
+import UnliftIO.Concurrent
 import UnliftIO.Directory
 import UnliftIO.MVar
 
 
 type ClientNotMethod m = SMethod (m :: Method 'ClientToServer 'Notification)
 
+type SendExtraNotificationFn n = forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ()
+
 transformClientNot :: (
   TransformerMonad n, HasJSON (TNotificationMessage m)
-  ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ())
+  ) => SendExtraNotificationFn n
     -> ClientNotMethod m
     -> TNotificationMessage m
     -> n (TNotificationMessage m)
@@ -75,6 +79,7 @@ transformClientNot' _ SMethod_TextDocumentDidOpen params = whenAnything params $
     DocumentState {
         transformer = transformer'
         , curLines = ls
+        , curLines' = ls'
         , origUri = u
         , newUri = newUri
         , newPath = newPath
@@ -87,11 +92,12 @@ transformClientNot' _ SMethod_TextDocumentDidOpen params = whenAnything params $
          & set (textDocument . text) (Rope.toText ls')
          & set (textDocument . uri) newUri
 
-transformClientNot' sendExtraNotification SMethod_TextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, origUri, newUri, newPath}) -> do
+transformClientNot' sendExtraNotification SMethod_TextDocumentDidChange params = whenAnything params $ modifyTransformer params $ \ds@(DocumentState {transformer=tx, curLines=before, curLines'=before', origUri, newUri, newPath}) -> do
   let txParams = if isNotebook origUri then transformerParams else idTransformerParams
   let changeEvents = params ^. contentChanges
   let (changeEvents', tx') = handleDiffMulti txParams before changeEvents tx
   let after = applyChanges changeEvents before
+  let after' = applyChanges changeEvents' before'
 
   whenServerCapabilitiesSatisfy supportsWillSave $ \_ ->
     sendExtraNotification $ TNotificationMessage "2.0" SMethod_TextDocumentWillSave $ WillSaveTextDocumentParams {
@@ -99,18 +105,26 @@ transformClientNot' sendExtraNotification SMethod_TextDocumentDidChange params =
       , _reason = TextDocumentSaveReason_AfterDelay
       }
 
-  liftIO $ T.writeFile newPath (Rope.toText after)
+  liftIO $ T.writeFile newPath (Rope.toText after')
 
   whenServerCapabilitiesSatisfy supportsSave $ \maybeSaveOptions ->
-    sendExtraNotification $ TNotificationMessage "2.0" SMethod_TextDocumentDidSave $ DidSaveTextDocumentParams {
-      _textDocument = TextDocumentIdentifier newUri
-      , _text = case maybeSaveOptions of
-          Just (SaveOptions {_includeText=(Just True)}) -> Just (Rope.toText after)
-          _ -> Nothing
-      }
+    void $ async $ do
+      threadDelay 5_000_000
+      sendExtraNotification $ TNotificationMessage "2.0" SMethod_TextDocumentDidSave $ DidSaveTextDocumentParams {
+        _textDocument = TextDocumentIdentifier newUri
+        , _text = case maybeSaveOptions of
+            Just (SaveOptions {_includeText=(Just True)}) -> Just (Rope.toText after')
+            _ -> Nothing
+        }
 
-  return (ds { transformer = tx', curLines = after }, params & set contentChanges changeEvents'
-                                                             & set (textDocument . uri) newUri)
+  return (
+    ds { transformer = tx'
+       , curLines = after
+       , curLines' = after'
+       }
+    , params & set contentChanges changeEvents'
+             & set (textDocument . uri) newUri
+    )
 
 transformClientNot' _ SMethod_TextDocumentDidClose params = whenAnything params $ \u -> do
   TransformerState {..} <- ask
@@ -119,7 +133,7 @@ transformClientNot' _ SMethod_TextDocumentDidClose params = whenAnything params 
     Just (DocumentState {..}) -> do
       removePathForcibly newPath
       pure newUri
-    Nothing -> addExtensionToUri ".hs" u -- The client shouldn't be closing a non-open doc
+    Nothing -> addExtensionToUri ".rs" u -- The client shouldn't be closing a non-open doc
   updateLibRs
   return $ params
          & set (textDocument . uri) newUri

@@ -20,7 +20,7 @@ spec = describe "Hover" $ do
         >>= (`shouldBe` "Defined at: main.ipynb:2:1")
 
     it "Works with a long path with spaces and stuff" $ do
-      let longPath = "/home/tom/tools/codedown-languages/tests/test_runs/2023-04-04T22_19_24.564991588Z/results/0_command line options/Introduce parallel semaphore/Tests/Parallel/claim semaphore/Haskell haskell-ghc8107/Haskell Nix environment/Jupyter runner/LSP/Hover/0_hovers foo/haskell-language-server-fc572b32aa084825/main.ipynb.hs"
+      let longPath = "/home/tom/tools/codedown-languages/tests/test_runs/2023-04-04T22_19_24.564991588Z/results/0_command line options/Introduce parallel semaphore/Tests/Parallel/claim semaphore/Haskell haskell-ghc8107/Haskell Nix environment/Jupyter runner/LSP/Hover/0_hovers foo/haskell-language-server-fc572b32aa084825/main.ipynb.rs"
       let regex = mkDocRegex longPath
       fixupDocumentReferences' regex transformer [i|Defined at: #{longPath}:3:1|]
         >>= (`shouldBe` [i|Defined at: #{longPath}:2:1|])

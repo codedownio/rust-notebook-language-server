@@ -10,14 +10,15 @@ import Data.Sequence hiding (zip)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
-import Language.LSP.Transformer
 import Language.LSP.Protocol.Types
+import Language.LSP.Transformer
 
 
 data StripDirective = StripDirective Bool (Set.Set UInt)
-  deriving Show
+  deriving (Show)
 
 data SDParams = SDParams { sdParamsEnable :: Bool }
+  deriving (Show)
 
 instance Transformer StripDirective where
   type Params StripDirective = SDParams
