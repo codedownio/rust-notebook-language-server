@@ -2,6 +2,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Transform.Util where
 
@@ -11,14 +12,17 @@ import Control.Monad.IO.Class
 import Control.Monad.IO.Unlift
 import Control.Monad.Logger
 import Control.Monad.Reader
+import Data.Aeson as A
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.String.Interpolate
 import Data.Text
 import qualified Data.Text as T
+import Data.UUID
 import Language.LSP.Notebook
 import Language.LSP.Protocol.Lens as Lens
+import Language.LSP.Protocol.Message
 import Language.LSP.Protocol.Types as LSP
 import Language.LSP.Transformer
 import Network.URI
@@ -26,6 +30,8 @@ import System.FilePath
 import qualified System.Random as R
 import UnliftIO.MVar
 
+
+type SendExtraNotificationFn n = forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ()
 
 -- * whenAnything
 
@@ -95,6 +101,8 @@ data DocumentState = DocumentState {
   , newUri :: Uri
   , newPath :: FilePath
   , referenceRegex :: Regex
+  , documentUuid :: UUID
+  , debouncedDidChange :: IO ()
   }
 
 data TransformerState = TransformerState {
