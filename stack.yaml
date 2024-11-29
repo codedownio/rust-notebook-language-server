@@ -1,4 +1,4 @@
-resolver: lts-21.21
+resolver: lts-22.43
 
 packages:
 - .
@@ -12,8 +12,6 @@ nix:
   - "nixpkgs=/home/tom/tools/nixpkgs"
 
 extra-deps:
-- myers-diff-0.3.0.0
-
 # - language-rust-0.2.0.27
 
 # - github: harpocrates/language-rust

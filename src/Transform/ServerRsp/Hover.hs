@@ -17,6 +17,7 @@ import Control.Lens hiding (List)
 import Control.Lens.Regex.Text
 import Control.Monad.Logger
 import Control.Monad.Reader
+import Data.Function
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Row.Records

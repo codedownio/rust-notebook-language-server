@@ -7,6 +7,7 @@ module Transform.ClientNot where
 
 import Control.Debounce
 import Control.Lens hiding ((:>), (<.>), List)
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.IO.Unlift
 import Control.Monad.Logger
