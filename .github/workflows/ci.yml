@@ -9,7 +9,7 @@ on:
 jobs:
   stack:
     name: stack / ghc ${{ matrix.ghc }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, desktop]
     strategy:
       fail-fast: false
       # matrix:
@@ -50,7 +50,7 @@ jobs:
         nix run .#stack -- test --nix --test-arguments --print
 
   no-gmp:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, desktop]
     strategy:
       fail-fast: false
     steps:
@@ -69,7 +69,7 @@ jobs:
 
   nix:
     name: Nix
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, desktop]
     strategy:
       fail-fast: false
 

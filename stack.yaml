@@ -8,8 +8,6 @@ nix:
   packages:
   - zlib
   - pcre
-  path:
-  - "nixpkgs=/home/tom/tools/nixpkgs"
 
 extra-deps:
 # - language-rust-0.2.0.27
