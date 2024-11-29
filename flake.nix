@@ -46,8 +46,8 @@
 
         pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
 
-        flake = compiler-nix-name: (pkgs.hixProject compiler-nix-name).flake {};
-        flakeStatic = compiler-nix-name: (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
+        flake = (pkgs.hixProject compiler-nix-name).flake {};
+        flakeStatic = (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
 
         packageForGitHub = rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}" {} ''
           name="rust-notebook-language-server-${rnls.version}-x86_64-linux"
@@ -63,14 +63,14 @@
           packages = (rec {
             inherit (pkgs) cabal2nix;
 
-            default = (flake compiler-nix-name).packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-            defaultStatic = (flakeStatic compiler-nix-name).packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-            packaged = packageForGitHub defaultStatic;
+            default = flakeStatic.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            dynamic = flake.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            packaged = packageForGitHub default;
 
             # No GMP (we test the dynamic builds to make sure GMP doesn't end up in the static builds)
             verify-no-gmp = pkgs.writeShellScriptBin "verify-no-gmp.sh" ''
-              echo "Checking for libgmp in ${default}/bin/rust-notebook-language-server"
-              (echo "$(ldd ${default}/bin/rust-notebook-language-server)" | grep libgmp) && exit 1
+              echo "Checking for libgmp in ${dynamic}/bin/rust-notebook-language-server"
+              (echo "$(ldd ${dynamic}/bin/rust-notebook-language-server)" | grep libgmp) && exit 1
 
               exit 0
             '';
