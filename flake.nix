@@ -61,7 +61,7 @@
       in
         {
           packages = (rec {
-            inherit (pkgs) cabal2nix;
+            inherit (pkgs) cabal2nix stack;
 
             default = flakeStatic.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             dynamic = flake.packages."rust-notebook-language-server:exe:rust-notebook-language-server";

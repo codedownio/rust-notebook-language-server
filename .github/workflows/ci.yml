@@ -40,12 +40,12 @@ jobs:
     - name: Build
       run: |
         # stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
-        stack build --nix --test --bench --no-run-tests --no-run-benchmarks
+        nix run .#stack -- build --nix --test --bench --no-run-tests --no-run-benchmarks
 
     - name: Test
       run: |
         # stack test --system-ghc --test-arguments --print
-        stack test --nix --test-arguments --print
+        nix run .#stack -- test --nix --test-arguments --print
 
   no-gmp:
     runs-on: self-hosted
