@@ -41,12 +41,14 @@ jobs:
       run: |
         # stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
         export NIX_PATH="nixpkgs=$(nix run .#nixpkgsPath)"
+        echo "NIX_PATH: $NIX_PATH"
         nix run .#stack -- build --nix --test --bench --no-run-tests --no-run-benchmarks
 
     - name: Test
       run: |
         # stack test --system-ghc --test-arguments --print
         export NIX_PATH="nixpkgs=$(nix run .#nixpkgsPath)"
+        echo "NIX_PATH: $NIX_PATH"
         nix run .#stack -- test --nix --test-arguments --print
 
   no-gmp:
