@@ -74,11 +74,11 @@
 
               exit 0
             '';
+
+            nixpkgsPath = pkgs.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgs.path}";
           });
 
           inherit flake;
-
-          nixpkgsPath = pkgs.path;
         }
     );
 
