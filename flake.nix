@@ -38,7 +38,7 @@
                 inherit compiler-nix-name;
 
                 modules = [{
-                  packages.rust-notebook-language-server.components.exes.rust-notebook-language-server.dontStrip = true;
+                  packages.rust-notebook-language-server.components.exes.rust-notebook-language-server.dontStrip = false;
                 }];
               };
           })
