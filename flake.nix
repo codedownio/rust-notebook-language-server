@@ -10,7 +10,7 @@
   outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs }:
     flake-utils.lib.eachSystem ["x86_64-linux" "x86_64-darwin" "aarch64-darwin"] (system:
       let
-        compiler-nix-name = "ghc963";
+        compiler-nix-name = "ghc966";
 
         overlays = [
           haskellNix.overlay
