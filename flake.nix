@@ -14,6 +14,8 @@
 
         overlays = [
           haskellNix.overlay
+
+          # Set enableNativeBignum flag on compiler
           (final: prev: {
             haskell-nix = let
               shouldPatch = name: compiler: prev.lib.hasPrefix compiler-nix-name name;
@@ -26,6 +28,8 @@
                 compiler = prev.lib.mapAttrs overrideCompiler (prev.lib.filterAttrs shouldPatch prev.haskell-nix.compiler);
               };
           })
+
+          # Configure hixProject
           (final: prev: {
             hixProject = compiler-nix-name:
               final.haskell-nix.hix.project {
@@ -54,25 +58,14 @@
           tar -czvf $name.tar.gz $name
         '';
 
-        allVersions = with pkgs.lib; (
-          concatMap (name: [
-            (nameValuePair name (flake name).packages."rust-notebook-language-server:exe:rust-notebook-language-server")
-            (nameValuePair "${name}-static" (flakeStatic name).packages."rust-notebook-language-server:exe:rust-notebook-language-server")
-            (nameValuePair "${name}-static-github" (packageForGitHub (flakeStatic name).packages."rust-notebook-language-server:exe:rust-notebook-language-server"))
-          ]) [
-            compiler-nix-name
-          ]
-        );
-
-        allVersionsAttrset = pkgs.lib.listToAttrs allVersions;
-
       in
         {
-          packages = allVersionsAttrset // (rec {
+          packages = (rec {
             inherit (pkgs) cabal2nix;
 
-            default = allVersionsAttrset.${compiler-nix-name};
-            defaultStatic = allVersionsAttrset."${compiler-nix-name}-static";
+            default = (flake compiler-nix-name).packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            defaultStatic = (flakeStatic compiler-nix-name).packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            packaged = packageForGitHub defaultStatic;
 
             # No GMP (we test the dynamic builds to make sure GMP doesn't end up in the static builds)
             verify-no-gmp = pkgs.writeShellScriptBin "verify-no-gmp.sh" ''
@@ -81,13 +74,6 @@
 
               exit 0
             '';
-
-            all = pkgs.linkFarm "rust-notebook-language-server-all" (
-              map (x: {
-                inherit (x) name;
-                path = x.value;
-              }) allVersions
-            );
           });
 
           inherit flake;
