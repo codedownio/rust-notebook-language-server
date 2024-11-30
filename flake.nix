@@ -56,6 +56,7 @@
           mkdir -p $out
           cp ${rnls}/bin/rust-notebook-language-server $out/$name
 
+          cd $out
           tar -czvf $name.tar.gz $name
         '';
 
