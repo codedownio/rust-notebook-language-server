@@ -6,8 +6,9 @@
     inputs.nixpkgs.follows = "nixpkgs";
   };
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
+  inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
 
-  outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs }:
+  outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs, nixpkgsMaster }:
     flake-utils.lib.eachSystem ["x86_64-linux" "x86_64-darwin" "aarch64-darwin"] (system:
       let
         compiler-nix-name = "ghc966";
@@ -75,7 +76,10 @@
               exit 0
             '';
 
-            nixpkgsPath = pkgs.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgs.path}";
+            nixpkgsPath = let
+              pkgsMaster = import nixpkgsMaster { inherit system; };
+            in
+              pkgsMaster.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgsMaster.path}";
           });
 
           inherit flake;
