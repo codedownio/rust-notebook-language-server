@@ -52,8 +52,8 @@
         flake = (pkgs.hixProject compiler-nix-name).flake {};
         flakeStatic = (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
 
-        packageForGitHub = rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}" {} ''
-          name="rust-notebook-language-server-${rnls.version}-x86_64-linux"
+        packageForGitHub = rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}-${system}" {} ''
+          name="rust-notebook-language-server-${rnls.version}-${system}"
 
           mkdir -p $out
           cp ${rnls}/bin/rust-notebook-language-server $out/$name
@@ -67,9 +67,21 @@
           packages = (rec {
             inherit (pkgs) cabal2nix stack;
 
-            default = flakeStatic.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            default = static;
+
+            static = flakeStatic.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             dynamic = flake.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-            packaged = packageForGitHub default;
+
+            githubArtifacts = packageForGitHub (if pkgs.stdenv.isDarwin then dynamic else static);
+
+            grandCombinedGithubArtifacts = pkgs.symlinkJoin {
+              name = "rust-notebook-language-server-grand-combined-artifacts";
+              paths = [
+                self.packages.x86_64-linux.githubArtifacts
+                self.packages.x86_64-darwin.githubArtifacts
+                self.packages.aarch64-darwin.githubArtifacts
+              ];
+            };
 
             # No GMP (we test the dynamic builds to make sure GMP doesn't end up in the static builds)
             verify-no-gmp = pkgs.writeShellScriptBin "verify-no-gmp.sh" ''
