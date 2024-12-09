@@ -1,6 +1,6 @@
 {
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.haskellNix.url = "github:input-output-hk/haskell.nix";
+  inputs.haskellNix.url = "github:input-output-hk/haskell.nix/angerman/fix-install_name_tool";
   inputs.gitignore = {
     url = "github:hercules-ci/gitignore.nix";
     inputs.nixpkgs.follows = "nixpkgs";
@@ -40,7 +40,9 @@
 
                 modules = [{
                   packages.rust-notebook-language-server.components.exes.rust-notebook-language-server.dontStrip = false;
-                }];
+                } (
+                  pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin (import ./nix/macos-modules.nix { inherit pkgs; })
+                )];
               };
           })
         ];
