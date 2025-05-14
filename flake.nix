@@ -51,6 +51,8 @@
 
         flake = (pkgs.hixProject compiler-nix-name).flake {};
         flakeStatic = (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
+        flakeDarwin = (pkgs.pkgsCross.aarch64-darwin.hixProject compiler-nix-name).flake {};
+        flakeAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform.hixProject compiler-nix-name).flake {};
 
         packageForGitHub = rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}-${system}" {} ''
           name="rust-notebook-language-server-${rnls.version}-${system}"
@@ -71,6 +73,8 @@
 
             static = flakeStatic.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             dynamic = flake.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            darwin = flakeDarwin.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+            aarch64Linux = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
 
             githubArtifacts = packageForGitHub (if pkgs.stdenv.isDarwin then dynamic else static);
 
