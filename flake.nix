@@ -66,6 +66,13 @@
 
       in
         {
+          devShells = {
+            default = pkgs.mkShell {
+              NIX_PATH = "nixpkgs=${pkgsMaster.path}";
+              buildInputs = [];
+            };
+          };
+
           packages = (rec {
             inherit (pkgs) cabal2nix stack;
 
@@ -95,10 +102,7 @@
               exit 0
             '';
 
-            nixpkgsPath = let
-              pkgsMaster = import nixpkgsMaster { inherit system; };
-            in
-              pkgsMaster.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgsMaster.path}";
+            nixpkgsPath = pkgsMaster.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgsMaster.path}";
           });
 
           inherit flake;

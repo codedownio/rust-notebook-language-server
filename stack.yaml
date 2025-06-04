@@ -1,10 +1,10 @@
-resolver: lts-22.43
+resolver: nightly-2025-05-28
 
 packages:
 - .
 
 nix:
-  # pure: false
+  pure: false
   packages:
   - zlib
   - pcre

@@ -48,7 +48,6 @@ library:
   - network-uri
   - pcre-light
   - random
-  - row-types
   - safe
   - text-rope
   - time

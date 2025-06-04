@@ -20,9 +20,9 @@ import Control.Monad.Reader
 import Data.Function
 import qualified Data.List as L
 import qualified Data.Map as M
-import Data.Row.Records
 import Data.String.Interpolate
-import Data.Text as T
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Text.Rope (Rope)
 import Language.LSP.Notebook
 import Language.LSP.Protocol.Lens hiding (id, trace)
@@ -54,8 +54,8 @@ fixupDocumentReferences docRegex transformer _curLines (InR markedStrings) = (In
     transformMarkedString :: MarkedString -> n MarkedString
     transformMarkedString (MarkedString (InL t)) = (MarkedString . InL) <$> (fixupDocumentReferences' docRegex transformer t)
     transformMarkedString (MarkedString (InR thing)) = do
-      t' <- fixupDocumentReferences' docRegex transformer (thing .! #value)
-      return $ MarkedString $ InR (thing & update #value t')
+      t' <- fixupDocumentReferences' docRegex transformer (thing ^. value)
+      return $ MarkedString $ InR (thing & set value t')
 
 fixupDocumentReferences' :: forall n. MonadLogger n => Regex -> RustNotebookTransformer -> Text -> n Text
 fixupDocumentReferences' docRegex transformer t =

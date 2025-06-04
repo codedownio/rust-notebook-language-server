@@ -19,7 +19,7 @@ import Data.Function
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.String.Interpolate
-import Data.Text
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.UUID
 import Language.LSP.Notebook

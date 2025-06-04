@@ -18,15 +18,16 @@ module Language.LSP.Transformer (
   , applyChanges
   ) where
 
+import Control.Lens ((^.))
 import Data.Diff.Myers
 import qualified Data.Diff.Types as DT
 import Data.Kind
 import qualified Data.List as L
-import Data.Row.Records
-import Data.Text
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Rope (Rope)
 import qualified Data.Text.Rope as Rope
+import Language.LSP.Protocol.Lens
 import Language.LSP.Protocol.Types as J
 
 
@@ -83,7 +84,7 @@ defaultHandleDiff params before change _transformer = (change', transformer')
     (after', transformer' :: a) = project params after
     change' = fmap repackChangeEvent $ diffTextsToChangeEventsConsolidate (Rope.toText before') (Rope.toText after')
 
-    repackChangeEvent (DT.ChangeEvent range text) = TextDocumentContentChangeEvent $ InL $ #range .== repackRange range .+ #rangeLength .== Nothing .+ #text .== text
+    repackChangeEvent (DT.ChangeEvent range text) = TextDocumentContentChangeEvent $ InL $ TextDocumentContentChangePartial (repackRange range) Nothing text
     repackRange (DT.Range (DT.Position l1 c1) (DT.Position l2 c2)) = Range (Position (fromIntegral l1) (fromIntegral c1)) (Position (fromIntegral l2) (fromIntegral c2))
 
 -- * Applying changes
@@ -101,11 +102,11 @@ applyChanges :: [J.TextDocumentContentChangeEvent] -> Rope -> Rope
 applyChanges changes rope = L.foldl' (flip applyChange) rope changes
 
 applyChange :: J.TextDocumentContentChangeEvent -> Rope -> Rope
-applyChange (J.TextDocumentContentChangeEvent (InL withRange)) str =
-  changeChars str (Rope.Position (fromIntegral sl) (fromIntegral sc)) (Rope.Position (fromIntegral fl) (fromIntegral fc)) (withRange .! #text)
+applyChange (J.TextDocumentContentChangeEvent (InL partial)) str =
+  changeChars str (Rope.Position (fromIntegral sl) (fromIntegral sc)) (Rope.Position (fromIntegral fl) (fromIntegral fc)) (partial ^. text)
   where
-    J.Range (J.Position sl sc) (J.Position fl fc) = withRange .! #range
-applyChange (J.TextDocumentContentChangeEvent (InR textOnly)) _ = Rope.fromText (textOnly .! #text)
+    J.Range (J.Position sl sc) (J.Position fl fc) = partial ^. range
+applyChange (J.TextDocumentContentChangeEvent (InR whole)) _ = Rope.fromText (whole ^. text)
 
 changeChars :: Rope -> Rope.Position -> Rope.Position -> Text -> Rope
 changeChars str start finish new = mconcat [before', Rope.fromText new, after]
