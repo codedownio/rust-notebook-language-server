@@ -1,67 +1,47 @@
 {
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.haskellNix.url = "github:input-output-hk/haskell.nix/angerman/fix-install_name_tool";
+  inputs.haskellNix.url = "github:input-output-hk/haskell.nix/master";
   inputs.gitignore = {
     url = "github:hercules-ci/gitignore.nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
 
   outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs, nixpkgsMaster }:
-    flake-utils.lib.eachSystem ["x86_64-linux" "x86_64-darwin" "aarch64-darwin"] (system:
+    flake-utils.lib.eachSystem ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"] (system:
       let
-        compiler-nix-name = "ghc966";
+        compiler-nix-name = "ghc9122";
+
+        pkgsMaster = import nixpkgsMaster { inherit system; };
 
         overlays = [
           haskellNix.overlay
 
           # Set enableNativeBignum flag on compiler
-          (final: prev: {
-            haskell-nix = let
-              shouldPatch = name: compiler: prev.lib.hasPrefix compiler-nix-name name;
-
-              overrideCompiler = name: compiler: (compiler.override {
-                enableNativeBignum = true;
-              });
-            in
-              prev.lib.recursiveUpdate prev.haskell-nix {
-                compiler = prev.lib.mapAttrs overrideCompiler (prev.lib.filterAttrs shouldPatch prev.haskell-nix.compiler);
-              };
-          })
+          (import ./nix/overlays/native-bignum.nix { inherit compiler-nix-name; })
 
           # Configure hixProject
-          (final: prev: {
-            hixProject = compiler-nix-name:
-              final.haskell-nix.hix.project {
-                src = gitignore.lib.gitignoreSource ./.;
-                evalSystem = system;
-                inherit compiler-nix-name;
-
-                modules = [{
-                  packages.rust-notebook-language-server.components.exes.rust-notebook-language-server.dontStrip = false;
-                } (
-                  pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin (import ./nix/macos-modules.nix { inherit pkgs; })
-                )];
-              };
-          })
+          (import ./nix/overlays/hix-project.nix { inherit compiler-nix-name gitignore system; })
         ];
 
-        pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
+        pkgs = import nixpkgsMaster { inherit system overlays; inherit (haskellNix) config; };
 
         flake = (pkgs.hixProject compiler-nix-name).flake {};
         flakeStatic = (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
         flakeDarwin = (pkgs.pkgsCross.aarch64-darwin.hixProject compiler-nix-name).flake {};
         flakeAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform.hixProject compiler-nix-name).flake {};
+        flakeStaticAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform-musl.hixProject compiler-nix-name).flake {};
 
-        packageForGitHub = rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}-${system}" {} ''
-          name="rust-notebook-language-server-${rnls.version}-${system}"
+        packageForGitHub = packageForGitHub' system;
 
+        packageForGitHub' = systemToUse: rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}-${systemToUse}" {} ''
+          name="rust-notebook-language-server-${rnls.version}-${systemToUse}"
+
+          mkdir -p to_zip
+          cp -r ${rnls}/* to_zip
           mkdir -p $out
-          cp ${rnls}/bin/rust-notebook-language-server $out/$name
-
-          cd $out
-          tar -czvf $name.tar.gz $name
+          tar -czvf $out/$name.tar.gz -C to_zip .
         '';
 
       in
@@ -81,16 +61,27 @@
             static = flakeStatic.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             dynamic = flake.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             darwin = flakeDarwin.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-            aarch64Linux = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-
-            githubArtifacts = packageForGitHub (if pkgs.stdenv.isDarwin then dynamic else static);
+            aarch64Linux = let
+              executable = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+              libs = pkgs.callPackage ./nix/dynamic-aarch64-closure.nix {
+                inherit executable;
+                executableName = "rust-notebook-language-server";
+                pkgsCross = pkgs.pkgsCross.aarch64-multiplatform;
+              };
+            in pkgs.runCommand "rust-notebook-language-server-aarch64-dynamic" { passthru = { inherit (executable) version; }; } ''
+                 mkdir -p $out/bin
+                 cp -r ${executable}/bin/* $out/bin
+                 cp -r ${libs}/lib/* $out/bin
+               '';
+            staticAarch64Linux = flakeStaticAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
 
             grandCombinedGithubArtifacts = pkgs.symlinkJoin {
               name = "rust-notebook-language-server-grand-combined-artifacts";
               paths = [
-                self.packages.x86_64-linux.githubArtifacts
-                self.packages.x86_64-darwin.githubArtifacts
-                self.packages.aarch64-darwin.githubArtifacts
+                (packageForGitHub' "x86_64-linux" self.packages.x86_64-linux.static)
+                (packageForGitHub' "aarch64-linux" aarch64Linux)
+                (packageForGitHub' "x86_64-darwin" self.packages.x86_64-darwin.dynamic)
+                (packageForGitHub' "aarch64-darwin" self.packages.aarch64-darwin.dynamic)
               ];
             };
 
@@ -102,7 +93,7 @@
               exit 0
             '';
 
-            nixpkgsPath = pkgsMaster.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgsMaster.path}";
+            nixpkgsPath = pkgs.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgs.path}";
           });
 
           inherit flake;
