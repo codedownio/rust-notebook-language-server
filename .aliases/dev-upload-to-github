@@ -10,21 +10,9 @@ cd "$SCRIPTDIR"
 
 cd ..
 
-for arg do
-    shift
-
-    [ "$arg" = "--grand" ] && GRAND="t" && continue
-done
-
-if [[ -n "$GRAND" ]]; then
-  BUILT=$(nix build .#grandCombinedGithubArtifacts \
-    --builders-use-substitutes --no-link --json | jq -r '.[0].outputs.out')
-else
-  BUILT=$(nix build .#githubArtifacts --no-link --json | jq -r '.[0].outputs.out')
-fi
+BUILT=$(nix build .#grandCombinedGithubArtifacts --builders-use-substitutes --no-link --json | jq -r '.[0].outputs.out')
 
 echo "Built: $BUILT"
-ls "$BUILT"
 
 VERSION="$(nix eval .#default.version --raw)"
 echo "Got version: $VERSION"
@@ -34,11 +22,6 @@ ARTIFACTS=$(find "$BUILT" -name "*.tar.gz")
 unset IFS
 echo "Saw artifacts:\n\n"
 echo "$ARTIFACTS"
-
-# Smoke check
-# FIRST_EXECUTABLE=$(find "$BUILT" -type f -executable | head -n 1)
-# echo "FIRST_EXECUTABLE: $FIRST_EXECUTABLE"
-# $FIRST_EXECUTABLE --help > /dev/null 2>&1
 
 TAG=v"$VERSION"
 
