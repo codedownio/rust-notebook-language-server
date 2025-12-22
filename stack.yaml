@@ -1,14 +1,12 @@
-resolver: nightly-2025-05-28
-compiler: ghc-9.12.2
+resolver: nightly-2025-12-22
 
 packages:
 - .
 
 nix:
-  pure: false
-  packages:
-  - zlib
-  - pcre
+  enable: false
+
+system-ghc: true
 
 extra-deps:
 # - language-rust-0.2.0.27

@@ -5,7 +5,7 @@
     url = "github:hercules-ci/gitignore.nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
 
   outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs, nixpkgsMaster }:
@@ -49,7 +49,12 @@
           devShells = {
             default = pkgs.mkShell {
               NIX_PATH = "nixpkgs=${pkgsMaster.path}";
-              buildInputs = [];
+              buildInputs = with pkgs; [
+                haskell.compiler.ghc9122
+
+                pcre
+                zlib
+              ];
             };
           };
 
