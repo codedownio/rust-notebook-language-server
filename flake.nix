@@ -1,19 +1,16 @@
 {
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.haskellNix.url = "github:input-output-hk/haskell.nix/master";
+  inputs.haskellNix.url = "github:input-output-hk/haskell.nix/9c5956641f45b6b02607e318485aad01c18e65b0"; # Was master
   inputs.gitignore = {
     url = "github:hercules-ci/gitignore.nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
-  inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-25.11";
 
-  outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs, nixpkgsMaster }:
+  outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs }:
     flake-utils.lib.eachSystem ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"] (system:
       let
         compiler-nix-name = "ghc9122";
-
-        pkgsMaster = import nixpkgsMaster { inherit system; };
 
         overlays = [
           haskellNix.overlay
@@ -25,15 +22,13 @@
           (import ./nix/overlays/hix-project.nix { inherit compiler-nix-name gitignore system; })
         ];
 
-        pkgs = import nixpkgsMaster { inherit system overlays; inherit (haskellNix) config; };
+        pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
 
         flake = (pkgs.hixProject compiler-nix-name).flake {};
         flakeStatic = (pkgs.pkgsCross.musl64.hixProject compiler-nix-name).flake {};
         flakeDarwin = (pkgs.pkgsCross.aarch64-darwin.hixProject compiler-nix-name).flake {};
         flakeAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform.hixProject compiler-nix-name).flake {};
         flakeStaticAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform-musl.hixProject compiler-nix-name).flake {};
-
-        packageForGitHub = packageForGitHub' system;
 
         packageForGitHub' = systemToUse: rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}-${systemToUse}" {} ''
           name="rust-notebook-language-server-${rnls.version}-${systemToUse}"
@@ -48,7 +43,7 @@
         {
           devShells = {
             default = pkgs.mkShell {
-              NIX_PATH = "nixpkgs=${pkgsMaster.path}";
+              NIX_PATH = "nixpkgs=${pkgs.path}";
               buildInputs = with pkgs; [
                 haskell.compiler.ghc9122
 
@@ -68,16 +63,10 @@
             darwin = flakeDarwin.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             aarch64Linux = let
               executable = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-              libs = pkgs.callPackage ./nix/dynamic-aarch64-closure.nix {
-                inherit executable;
-                executableName = "rust-notebook-language-server";
-                pkgsCross = pkgs.pkgsCross.aarch64-multiplatform;
-              };
-            in pkgs.runCommand "rust-notebook-language-server-aarch64-dynamic" { passthru = { inherit (executable) version; }; } ''
-                 mkdir -p $out/bin
-                 cp -r ${executable}/bin/* $out/bin
-                 cp -r ${libs}/lib/* $out/bin
-               '';
+            in pkgs.callPackage ./nix/package-bundled.nix {
+              binaryDrv = executable;
+              binaryName = "rust-notebook-language-server";
+            };
             staticAarch64Linux = flakeStaticAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
 
             grandCombinedGithubArtifacts = pkgs.symlinkJoin {
