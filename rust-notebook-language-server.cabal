@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.38.0.
+-- This file has been generated from package.yaml by hpack version 0.39.1.
 --
 -- see: https://github.com/sol/hpack
 
 name:           rust-notebook-language-server
-version:        0.2.4.0
+version:        0.2.4.1
 build-type:     Simple
 extra-source-files:
     README.md
