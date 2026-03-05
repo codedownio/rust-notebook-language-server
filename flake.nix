@@ -6,8 +6,9 @@
     inputs.nixpkgs.follows = "nixpkgs";
   };
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-25.11";
+  inputs.linux-dynamic-bundler.url = "github:codedownio/linux-dynamic-bundler";
 
-  outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs }:
+  outputs = { self, flake-utils, gitignore, haskellNix, nixpkgs, linux-dynamic-bundler }:
     flake-utils.lib.eachSystem ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"] (system:
       let
         compiler-nix-name = "ghc9122";
@@ -63,7 +64,8 @@
             darwin = flakeDarwin.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             aarch64Linux = let
               executable = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
-            in pkgs.callPackage ./nix/package-bundled.nix {
+            in linux-dynamic-bundler.lib.bundle {
+              inherit pkgs;
               binaryDrv = executable;
               binaryName = "rust-notebook-language-server";
             };
