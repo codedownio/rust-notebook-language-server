@@ -6,7 +6,6 @@ import Data.String.Interpolate
 import Data.Text.Rope (Rope)
 import qualified Data.Text.Rope as Rope
 import Language.LSP.Notebook.HeadTailTransformer
-import Language.LSP.Protocol.Types hiding (line)
 import Language.LSP.Transformer
 import Test.Sandwich
 import Test.Sandwich.QuickCheck
@@ -17,7 +16,7 @@ import TestLib.Generators
 spec :: TopSpec
 spec = describe "HeadTailTransformer" $ do
   it "works" $ do
-    let (ls, ht@(HeadTailTransformer {})) = project (["fn main() {"], ["}"]) (listToDoc [[i|println!("hi")|]])
+    let (ls, (HeadTailTransformer {})) = project (["fn main() {"], ["}"]) (listToDoc [[i|println!("hi")|]])
     ls `shouldBe` (listToDoc [
                       "fn main() {"
                       , [i|println!("hi")|]

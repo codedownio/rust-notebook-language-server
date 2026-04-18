@@ -154,7 +154,6 @@ test-suite rust-notebook-language-server-test
     , monad-logger
     , myers-diff
     , quickcheck-instances
-    , row-types
     , rust-notebook-language-server
     , sandwich
     , sandwich-quickcheck

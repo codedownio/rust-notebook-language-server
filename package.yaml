@@ -92,7 +92,6 @@ tests:
     dependencies:
     - exceptions
     - myers-diff
-    - row-types
     - rust-notebook-language-server
     - QuickCheck
     - quickcheck-instances

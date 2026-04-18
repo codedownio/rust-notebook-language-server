@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE OverloadedLabels #-}
 
 module TestLib.Generators (
   arbitrarySingleLineChange
@@ -10,7 +9,6 @@ import Data.Diff.Myers
 import qualified Data.Diff.Types as DT
 import Data.Function
 import qualified Data.List as L
-import Data.Row.Records
 import Data.Text as T
 import Data.Text.Rope (Rope)
 import qualified Data.Text.Rope as Rope
@@ -32,7 +30,7 @@ arbitrarySingleLineChange (docToList -> docLines) = do
 
   toInsert :: String <- arbitrary
 
-  pure $ TextDocumentContentChangeEvent $ InL (#range .== (Range (p lineNo pos1) (p lineNo pos2)) .+ #rangeLength .== Nothing .+ #text .== (T.pack toInsert))
+  pure $ TextDocumentContentChangeEvent $ InL (TextDocumentContentChangePartial (Range (p lineNo pos1) (p lineNo pos2)) Nothing (T.pack toInsert))
 
 arbitraryChange :: Doc -> Gen TextDocumentContentChangeEvent
 arbitraryChange = undefined
@@ -43,7 +41,7 @@ arbitraryChanges doc = do
   let events = diffTextsToChangeEventsConsolidate (Rope.toText doc) (Rope.toText doc')
   return $ fmap repackChangeEvent events
   where
-    repackChangeEvent (DT.ChangeEvent range text) = TextDocumentContentChangeEvent $ InL $ #range .== repackRange range .+ #rangeLength .== Nothing .+ #text .== text
+    repackChangeEvent (DT.ChangeEvent range text) = TextDocumentContentChangeEvent $ InL $ TextDocumentContentChangePartial (repackRange range) Nothing text
     repackRange (DT.Range (DT.Position l1 c1) (DT.Position l2 c2)) = Range (Position (fromIntegral l1) (fromIntegral c1)) (Position (fromIntegral l2) (fromIntegral c2))
 
 -- * Newtypes to make it easier to generate certain combinations

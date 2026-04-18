@@ -5,6 +5,9 @@ packages:
 
 nix:
   enable: false
+  packages:
+    - pcre
+    - zlib
 
 system-ghc: true
 
