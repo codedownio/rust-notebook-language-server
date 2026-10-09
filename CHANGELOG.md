@@ -2,8 +2,7 @@
 
 ## Unreleased changes
 
-* Support textDocument/formatting and textDocument/onTypeFormatting, which were passed through
-  with the notebook's URI and so always failed with "file not found"
+* Support textDocument/formatting and textDocument/onTypeFormatting
 
 ## 0.2.2.0
 
