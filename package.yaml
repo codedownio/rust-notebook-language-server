@@ -98,3 +98,4 @@ tests:
     - sandwich
     - sandwich-quickcheck
     - text-rope
+    - uuid

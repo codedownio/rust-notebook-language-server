@@ -40,6 +40,18 @@ class Transformer a where
 
   project :: Params a -> Doc -> (Doc, a)
 
+  -- | Take a whole document back from the transformer's output space to its input space.
+  --
+  -- The dual of 'project', for responses that rewrite the document rather than point at a
+  -- place in it -- formatting, mainly, where the edits only make sense applied together.
+  -- 'project' is lossy, so this is 'Nothing' when a transformer threw away something it would
+  -- need to reconstruct the input, rather than guessing.
+  --
+  -- Does not try to preserve a trailing newline: 'project' doesn't add one, so whether the
+  -- result should end in one is a question about the original document, which the caller has
+  -- and this doesn't.
+  unproject :: Params a -> a -> Doc -> Maybe Doc
+
   handleDiffMulti :: Params a -> Doc -> [TextDocumentContentChangeEvent] -> a -> ([TextDocumentContentChangeEvent], a)
   handleDiffMulti params before changes tx = (finalChanges, finalTx)
     where
@@ -67,6 +79,7 @@ instance (Transformer a, Transformer b) => Transformer (a :> b) where
     where
       (lines', x) = project xParams lines
       (lines'', y) = project yParams lines'
+  unproject (xParams :> yParams) (x :> y) lines = unproject yParams y lines >>= unproject xParams x
   handleDiff (xParams :> yParams) before change (x :> y) = (change'', x' :> y')
     where
       (change', x') = handleDiff xParams before change x

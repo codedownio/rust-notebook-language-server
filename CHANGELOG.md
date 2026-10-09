@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+* Support textDocument/formatting, textDocument/onTypeFormatting and textDocument/inlayHint
+
 ## 0.2.2.0
 
 * Add debounced textDocument/didSave command and --did-save-period-ms argument
