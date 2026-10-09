@@ -25,6 +25,7 @@ library
       Transform.ServerNot
       Transform.ServerReq
       Transform.ServerRsp
+      Transform.ServerRsp.Formatting
       Transform.ServerRsp.Hover
       Transform.Util
   other-modules:
@@ -121,6 +122,7 @@ test-suite rust-notebook-language-server-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Test.Formatting
       Test.Hover
       Test.Transformer.HeadTail
       Test.Transformer.StripDirective
@@ -161,4 +163,5 @@ test-suite rust-notebook-language-server-test
     , text
     , text-rope
     , unliftio
+    , uuid
   default-language: Haskell2010

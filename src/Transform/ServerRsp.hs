@@ -17,6 +17,7 @@ import Language.LSP.Protocol.Lens as Lens
 import Language.LSP.Protocol.Message
 import Language.LSP.Protocol.Types as LSP
 import Transform.Common
+import Transform.ServerRsp.Formatting
 import Transform.ServerRsp.Hover
 import Transform.Util
 import UnliftIO.MVar
@@ -67,6 +68,18 @@ transformServerRsp' SMethod_TextDocumentDocumentHighlight initialParams result =
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     case result of
       InL highlights -> return $ InL $ mapMaybe (untransformRanged tx) highlights
+      InR null -> return $ InR null
+
+transformServerRsp' SMethod_TextDocumentFormatting initialParams result =
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \ds ->
+    case result of
+      InL edits -> return $ InL $ untransformFormattingEdits ds edits
+      InR null -> return $ InR null
+
+transformServerRsp' SMethod_TextDocumentOnTypeFormatting initialParams result =
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
+    case result of
+      InL edits -> return $ InL $ mapMaybe (untransformRanged tx) edits
       InR null -> return $ InR null
 
 transformServerRsp' SMethod_TextDocumentHover initialParams result =
