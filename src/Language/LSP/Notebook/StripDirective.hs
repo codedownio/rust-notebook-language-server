@@ -34,6 +34,14 @@ instance Transformer StripDirective where
         | isDirectiveLine line = go (Set.insert n affectedLines) (processedLines |> "") rest
         | otherwise = go affectedLines (processedLines |> line) rest
 
+  -- Directive lines are blanked, and a formatter is free to delete blank lines, so once the
+  -- document has been rewritten there's no telling where they went. Say so instead of
+  -- handing back a cell with the user's :dep lines missing.
+  unproject :: Params StripDirective -> StripDirective -> Doc -> Maybe Doc
+  unproject _ (StripDirective _ affectedLines) doc
+    | Set.null affectedLines = Just doc
+    | otherwise = Nothing
+
   transformPosition :: Params StripDirective -> StripDirective -> Position -> Maybe Position
   transformPosition (SDParams _) (StripDirective _ affectedLines) (Position l c)
     | l `Set.member` affectedLines = Just $ Position l 0

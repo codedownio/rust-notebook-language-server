@@ -10,6 +10,7 @@ import Language.LSP.Notebook
 import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
 import Test.Sandwich
+import Language.LSP.Notebook.HeadTailTransformer (dedent)
 import Transform.ServerRsp.Formatting
 import Transform.ServerRsp.Hover (mkDocRegex)
 import Transform.Util
@@ -53,6 +54,14 @@ spec = describe "Formatting" $ do
       untransformFormattingEdits ds edits
         `shouldBe` [TextEdit (wholeOf cell) "let x = 1;\nlet y = 2;"]
 
+    it "leaves the interior of a multi-line string where the formatter left it" $ do
+      let cell = "let s = r#\"\nhello\n\"#;\nlet y   =   1;"
+      let ds = documentState "/tmp/main.ipynb" cell
+      let formatted = "fn main() {\n    let s = r#\"\nhello\n\"#;\n    let y = 1;\n}\n"
+
+      untransformFormattingEdits ds [replaceAll ds formatted]
+        `shouldBe` [TextEdit (wholeOf cell) "let s = r#\"\nhello\n\"#;\nlet y = 1;"]
+
     it "leaves a cell containing directives alone" $ do
       let cell = ":dep rand = \"0.8\"\nlet x=1;"
       let ds = documentState "/tmp/main.ipynb" cell
@@ -65,14 +74,20 @@ spec = describe "Formatting" $ do
       untransformFormattingEdits ds [] `shouldBe` []
 
   describe "dedent" $ do
-    it "removes the shared prefix" $
+    it "removes one level, measured from the first line" $
       dedent ["    a", "        b", "    c"] `shouldBe` ["a", "    b", "c"]
 
-    it "ignores blank lines when working out the prefix" $
-      dedent ["    a", "", "    b"] `shouldBe` ["a", "", "b"]
+    it "measures from the first non-blank line" $
+      dedent ["", "    a", "    b"] `shouldBe` ["", "a", "b"]
 
-    it "does nothing when a line starts at column zero" $
-      dedent ["    a", "b"] `shouldBe` ["    a", "b"]
+    it "leaves lines that aren't indented, rather than giving up" $
+      dedent ["    a", "b", "    c"] `shouldBe` ["a", "b", "c"]
+
+    it "copes with tabs" $
+      dedent ["\ta", "\t\tb"] `shouldBe` ["a", "\tb"]
+
+    it "does nothing when the first line is already at column zero" $
+      dedent ["a", "    b"] `shouldBe` ["a", "    b"]
 
     it "does nothing to an empty document" $
       dedent [] `shouldBe` []
