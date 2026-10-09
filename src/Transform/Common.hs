@@ -7,6 +7,7 @@ import Control.Lens hiding (List)
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Data.Map as M
+import qualified Data.Maybe
 import Data.String.Interpolate
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -44,6 +45,15 @@ untransformRangedMaybe :: (HasRange a (Maybe Range)) => RustNotebookTransformer 
 untransformRangedMaybe tx x = x
   & traverseOf (range . _Just . start) (untransformPosition (getParams tx) tx)
   >>= traverseOf (range . _Just . end) (untransformPosition (getParams tx) tx)
+
+-- | An inlay hint sits at a position rather than over a range, and carries its own edits for
+-- when the user accepts it. Drop the hint if its position isn't in the cell; drop individual
+-- edits that aren't.
+untransformInlayHint :: RustNotebookTransformer -> InlayHint -> Maybe InlayHint
+untransformInlayHint tx hint =
+  hint
+    & traverseOf position (untransformPosition (getParams tx) tx)
+    & fmap (over (textEdits . _Just) (Data.Maybe.mapMaybe (untransformRanged tx)))
 
 -- * Orphan (wish this was in lsp-types)
 

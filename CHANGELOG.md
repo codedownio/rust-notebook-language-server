@@ -2,7 +2,7 @@
 
 ## Unreleased changes
 
-* Support textDocument/formatting and textDocument/onTypeFormatting
+* Support textDocument/formatting, textDocument/onTypeFormatting and textDocument/inlayHint
 
 ## 0.2.2.0
 

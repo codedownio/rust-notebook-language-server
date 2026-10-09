@@ -82,6 +82,12 @@ transformServerRsp' SMethod_TextDocumentOnTypeFormatting initialParams result =
       InL edits -> return $ InL $ mapMaybe (untransformRanged tx) edits
       InR null -> return $ InR null
 
+transformServerRsp' SMethod_TextDocumentInlayHint initialParams result =
+  whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
+    case result of
+      InL hints -> return $ InL $ mapMaybe (untransformInlayHint tx) hints
+      InR null -> return $ InR null
+
 transformServerRsp' SMethod_TextDocumentHover initialParams result =
   whenAnythingByInitialParams initialParams result $ withTransformer result $ \(DocumentState {transformer=tx}) ->
     case result of
