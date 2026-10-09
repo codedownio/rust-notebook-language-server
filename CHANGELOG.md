@@ -1,6 +1,6 @@
 # Changelog for rust-notebook-language-server
 
-## Unreleased changes
+## 0.2.5.0
 
 * Support textDocument/formatting, textDocument/onTypeFormatting and textDocument/inlayHint
 
