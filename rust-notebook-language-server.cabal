@@ -122,6 +122,7 @@ test-suite rust-notebook-language-server-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Test.CodeAction
       Test.Formatting
       Test.Hover
       Test.Transformer.HeadTail
@@ -151,7 +152,9 @@ test-suite rust-notebook-language-server-test
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , containers
     , exceptions
+    , lens
     , lsp-types >=2.0.0.1
     , monad-logger
     , myers-diff

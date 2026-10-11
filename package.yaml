@@ -90,7 +90,9 @@ tests:
     - -O2
     - -W
     dependencies:
+    - containers
     - exceptions
+    - lens
     - myers-diff
     - rust-notebook-language-server
     - QuickCheck

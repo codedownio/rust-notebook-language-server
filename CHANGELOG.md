@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## Unreleased changes
+
+* Map code action edits back to the notebook, instead of returning the shadow file's uri and lines
+
 ## 0.2.5.0
 
 * Support textDocument/formatting, textDocument/onTypeFormatting and textDocument/inlayHint
