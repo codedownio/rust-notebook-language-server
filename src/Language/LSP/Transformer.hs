@@ -64,9 +64,9 @@ class Transformer a where
   handleDiff :: Params a -> Doc -> TextDocumentContentChangeEvent -> a -> ([TextDocumentContentChangeEvent], a)
   handleDiff = defaultHandleDiff
 
-  transformPosition :: Params a -> a -> Position -> Maybe Position
+  transformPosition :: a -> Position -> Maybe Position
 
-  untransformPosition :: Params a -> a -> Position -> Maybe Position
+  untransformPosition :: a -> Position -> Maybe Position
 
 data (a :: Type) :> (b :: Type) = a :> b
   deriving Show
@@ -84,8 +84,8 @@ instance (Transformer a, Transformer b) => Transformer (a :> b) where
     where
       (change', x') = handleDiff xParams before change x
       (change'', y') = handleDiffMulti yParams (fst (project @a xParams before)) change' y
-  transformPosition (xParams :> yParams) (x :> y) p = transformPosition xParams x p >>= transformPosition yParams y
-  untransformPosition (xParams :> yParams) (x :> y) p = untransformPosition yParams y p >>= untransformPosition xParams x
+  transformPosition (x :> y) p = transformPosition x p >>= transformPosition y
+  untransformPosition (x :> y) p = untransformPosition y p >>= untransformPosition x
   -- untransformPosition (xParams :> yParams) (x :> y) p = untransformPosition yParams y p >>= untransformPosition xParams x
 
 -- Default implementation uses diff.

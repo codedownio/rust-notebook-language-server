@@ -49,9 +49,9 @@ instance Transformer HeadTailTransformer where
         Just (rest, "") -> rest
         _ -> docToList doc
 
-  transformPosition _ (HeadTailTransformer _ _ s _d _e) (Position l c) = Just $ Position (l + s) c
+  transformPosition (HeadTailTransformer _ _ s _d _e) (Position l c) = Just $ Position (l + s) c
 
-  untransformPosition _ (HeadTailTransformer _ _ s d _e) (Position l c)
+  untransformPosition (HeadTailTransformer _ _ s d _e) (Position l c)
     | l < s = Nothing
     | l >= s + d = Nothing
     | otherwise = Just $ Position (l - s) c

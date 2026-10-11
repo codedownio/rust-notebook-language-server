@@ -42,13 +42,13 @@ instance Transformer StripDirective where
     | Set.null affectedLines = Just doc
     | otherwise = Nothing
 
-  transformPosition :: Params StripDirective -> StripDirective -> Position -> Maybe Position
-  transformPosition (SDParams _) (StripDirective _ affectedLines) (Position l c)
+  transformPosition :: StripDirective -> Position -> Maybe Position
+  transformPosition (StripDirective _ affectedLines) (Position l c)
     | l `Set.member` affectedLines = Just $ Position l 0
     | otherwise = Just $ Position l c
 
-  untransformPosition :: Params StripDirective -> StripDirective -> Position -> Maybe Position
-  untransformPosition (SDParams _) (StripDirective _ affectedLines) (Position l c)
+  untransformPosition :: StripDirective -> Position -> Maybe Position
+  untransformPosition (StripDirective _ affectedLines) (Position l c)
     | l `Set.member` affectedLines = Just $ Position l 0
     | otherwise = Just $ Position l c
 
