@@ -45,8 +45,8 @@ library:
   - lens
   - lens-regex-pcre
   - mtl
-  - myers-diff
   - network-uri
+  - notebook-language-server-core
   - pcre-light
   - random
   - safe
@@ -71,9 +71,8 @@ executables:
     - bytestring
     - lens
     - mtl
+    - notebook-language-server-core
     - optparse-applicative
-    - process
-    - retry
     - rust-notebook-language-server
     - safe
     - unix
@@ -93,9 +92,10 @@ tests:
     dependencies:
     - exceptions
     - myers-diff
-    - rust-notebook-language-server
+    - notebook-language-server-core
     - QuickCheck
     - quickcheck-instances
+    - rust-notebook-language-server
     - sandwich
     - sandwich-quickcheck
     - text-rope
