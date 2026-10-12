@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE GADTs #-}
@@ -8,6 +9,7 @@ module Language.LSP.Transformer (
   Doc
 
   , Transformer(..)
+  , ProjectIn(..)
   , (:>)(..)
   , defaultHandleDiff
 
@@ -19,6 +21,8 @@ module Language.LSP.Transformer (
   ) where
 
 import Control.Lens ((^.))
+import Control.Monad (foldM)
+import Data.Either (lefts)
 import Data.Diff.Myers
 import qualified Data.Diff.Types as DT
 import Data.Kind
@@ -36,10 +40,6 @@ type Doc = Rope.Rope
 class Transformer a where
   type Params a
 
-  getParams :: a -> Params a
-
-  project :: Params a -> Doc -> (Doc, a)
-
   -- | Take a whole document back from the transformer's output space to its input space.
   --
   -- The dual of 'project', for responses that rewrite the document rather than point at a
@@ -50,25 +50,27 @@ class Transformer a where
   -- Does not try to preserve a trailing newline: 'project' doesn't add one, so whether the
   -- result should end in one is a question about the original document, which the caller has
   -- and this doesn't.
-  unproject :: Params a -> a -> Doc -> Maybe Doc
+  unproject :: a -> Doc -> Maybe Doc
+  unproject _ _ = Nothing
 
-  handleDiffMulti :: Params a -> Doc -> [TextDocumentContentChangeEvent] -> a -> ([TextDocumentContentChangeEvent], a)
-  handleDiffMulti params before changes tx = (finalChanges, finalTx)
-    where
-      (finalChanges, _finalLines, finalTx) = L.foldl' f ([], before, tx) changes
-
-      f :: ([TextDocumentContentChangeEvent], Doc, a) -> TextDocumentContentChangeEvent -> ([TextDocumentContentChangeEvent], Doc, a)
-      f (changesSoFar, curLines, txSoFar) change = let (newChanges, tx') = handleDiff params curLines change txSoFar in
-          (changesSoFar <> newChanges, applyChanges [change] curLines, tx')
-
-  handleDiff :: Params a -> Doc -> TextDocumentContentChangeEvent -> a -> ([TextDocumentContentChangeEvent], a)
-  handleDiff = defaultHandleDiff
-
-  -- No 'Params' here: no transformer has ever needed them to map a position, and threading
-  -- them meant every caller had to be able to build a 'Params'.
   transformPosition :: a -> Position -> Maybe Position
 
   untransformPosition :: a -> Position -> Maybe Position
+
+class Transformer a => ProjectIn m a where
+  project :: Params a -> Doc -> m (Doc, a, Either Text ())
+
+  handleDiffMulti :: Monad m => Params a -> Doc -> [TextDocumentContentChangeEvent] -> a -> m ([TextDocumentContentChangeEvent], a)
+  handleDiffMulti params before changes tx = do
+    (finalChanges, _finalLines, finalTx) <- foldM f ([], before, tx) changes
+    return (finalChanges, finalTx)
+    where
+      f (changesSoFar, curLines, txSoFar) change = do
+        (newChanges, tx') <- handleDiff params curLines change txSoFar
+        return (changesSoFar <> newChanges, applyChanges [change] curLines, tx')
+
+  handleDiff :: Monad m => Params a -> Doc -> TextDocumentContentChangeEvent -> a -> m ([TextDocumentContentChangeEvent], a)
+  handleDiff = defaultHandleDiff
 
 data (a :: Type) :> (b :: Type) = a :> b
   deriving Show
@@ -76,29 +78,33 @@ infixr :>
 
 instance (Transformer a, Transformer b) => Transformer (a :> b) where
   type Params (a :> b) = Params a :> Params b
-  getParams (x :> y) = getParams x :> getParams y
-  project (xParams :> yParams) lines = (lines'', x :> y)
-    where
-      (lines', x) = project xParams lines
-      (lines'', y) = project yParams lines'
-  unproject (xParams :> yParams) (x :> y) lines = unproject yParams y lines >>= unproject xParams x
-  handleDiff (xParams :> yParams) before change (x :> y) = (change'', x' :> y')
-    where
-      (change', x') = handleDiff xParams before change x
-      (change'', y') = handleDiffMulti yParams (fst (project @a xParams before)) change' y
+  unproject (x :> y) lines = unproject y lines >>= unproject x
   transformPosition (x :> y) p = transformPosition x p >>= transformPosition y
   untransformPosition (x :> y) p = untransformPosition y p >>= untransformPosition x
-  -- untransformPosition (xParams :> yParams) (x :> y) p = untransformPosition yParams y p >>= untransformPosition xParams x
+
+instance (ProjectIn m a, ProjectIn m b, Monad m) => ProjectIn m (a :> b) where
+  project (xParams :> yParams) lines = do
+    (lines', x, eitherErr1) <- project xParams lines
+    (lines'', y, eitherErr2) <- project yParams lines'
+    let overallErr = case lefts [eitherErr1, eitherErr2] of
+          [] -> Right ()
+          errs -> Left (T.intercalate "; " errs)
+    return (lines'', x :> y, overallErr)
+  handleDiff (xParams :> yParams) before change (x :> y) = do
+    (change', x') <- handleDiff xParams before change x
+    (beforeTransformed, _, _err) <- project @m @a xParams before
+    (change'', y') <- handleDiffMulti yParams beforeTransformed change' y
+    return (change'', x' :> y')
 
 -- Default implementation uses diff.
-defaultHandleDiff :: forall a. Transformer a => Params a -> Doc -> TextDocumentContentChangeEvent -> a -> ([TextDocumentContentChangeEvent], a)
-defaultHandleDiff params before change _transformer = (change', transformer')
+defaultHandleDiff :: forall m a. (ProjectIn m a, Monad m) => Params a -> Doc -> TextDocumentContentChangeEvent -> a -> m ([TextDocumentContentChangeEvent], a)
+defaultHandleDiff params before change _transformer = do
+  (before', _ :: a, _errBefore) <- project params before
+  let after = applyChanges [change] before
+  (after', transformer' :: a, _errAfter) <- project params after
+  let change' = fmap repackChangeEvent $ diffTextsToChangeEventsConsolidate (Rope.toText before') (Rope.toText after')
+  return (change', transformer')
   where
-    (before', _ :: a) = project params before
-    after = applyChanges [change] before
-    (after', transformer' :: a) = project params after
-    change' = fmap repackChangeEvent $ diffTextsToChangeEventsConsolidate (Rope.toText before') (Rope.toText after')
-
     repackChangeEvent (DT.ChangeEvent range text) = TextDocumentContentChangeEvent $ InL $ TextDocumentContentChangePartial (repackRange range) Nothing text
     repackRange (DT.Range (DT.Position l1 c1) (DT.Position l2 c2)) = Range (Position (fromIntegral l1) (fromIntegral c1)) (Position (fromIntegral l2) (fromIntegral c2))
 

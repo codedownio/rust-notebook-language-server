@@ -18,27 +18,7 @@ data HeadTailTransformer = HeadTailTransformer [Text] [Text] UInt UInt UInt
 instance Transformer HeadTailTransformer where
   type Params HeadTailTransformer = ([Text], [Text])
 
-  getParams (HeadTailTransformer initialLines finalLines _ _ _) = (initialLines, finalLines)
-
-  project (initialLines, finalLines) ls = (beginning <> ls <> ending, tx)
-    where
-      beginning = case initialLines of
-        [] -> ""
-        xs -> joinLines xs <> "\n"
-
-      ending = case finalLines of
-        [] -> ""
-        xs -> "\n" <> joinLines xs
-
-      joinLines = Rope.fromText . T.intercalate "\n"
-
-      tx = HeadTailTransformer initialLines
-                               finalLines
-                               (fromIntegral (L.length initialLines))
-                               (fromIntegral (lengthInLines ls))
-                               (fromIntegral (L.length finalLines))
-
-  unproject (initialLines, finalLines) _ doc
+  unproject (HeadTailTransformer initialLines finalLines _ _ _) doc
     | L.null initialLines && L.null finalLines = Just doc
     | otherwise = Just $ listToDoc $ dedent $ dropEnd (L.length finalLines) $ L.drop (L.length initialLines) core
     where
@@ -81,3 +61,22 @@ dropEnd n xs = L.take (L.length xs - n) xs
 unsnoc :: [a] -> Maybe ([a], a)
 unsnoc [] = Nothing
 unsnoc xs = Just (L.init xs, L.last xs)
+
+instance Monad m => ProjectIn m HeadTailTransformer where
+  project (initialLines, finalLines) ls = pure (beginning <> ls <> ending, tx, Right ())
+    where
+      beginning = case initialLines of
+        [] -> ""
+        xs -> joinLines xs <> "\n"
+
+      ending = case finalLines of
+        [] -> ""
+        xs -> "\n" <> joinLines xs
+
+      joinLines = Rope.fromText . T.intercalate "\n"
+
+      tx = HeadTailTransformer initialLines
+                               finalLines
+                               (fromIntegral (L.length initialLines))
+                               (fromIntegral (lengthInLines ls))
+                               (fromIntegral (L.length finalLines))

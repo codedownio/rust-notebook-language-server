@@ -2,6 +2,7 @@
 
 module Test.Transformer.StripDirective where
 
+import Data.Functor.Identity
 import Language.LSP.Notebook.StripDirective
 import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
@@ -11,7 +12,7 @@ import Test.Sandwich
 spec :: TopSpec
 spec = describe "StripDirective" $ do
   it "strips out :dep directives" $ do
-    let (ls, ed@(StripDirective _ affectedLines)) = project (SDParams True) (listToDoc ["let foo = 42", ":dep rand"])
+    let (ls, ed@(StripDirective _ affectedLines), _) = runIdentity $ project (SDParams True) (listToDoc ["let foo = 42", ":dep rand"])
     ls `shouldBe` (listToDoc ["let foo = 42", ""])
     affectedLines `shouldBe` [1]
 

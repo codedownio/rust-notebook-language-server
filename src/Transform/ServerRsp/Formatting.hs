@@ -29,7 +29,7 @@ import Transform.Util
 untransformFormattingEdits :: DocumentState -> [TextEdit] -> [TextEdit]
 untransformFormattingEdits _ [] = []
 untransformFormattingEdits (DocumentState {transformer=tx, curLines, curLines'}) edits =
-  case unproject (getParams tx) tx formatted of
+  case unproject tx formatted of
     Nothing -> []
     Just unprojected
       -- Nothing was undone, so this isn't a notebook and the shadow document is a copy of the

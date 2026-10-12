@@ -3,18 +3,19 @@
 
 module TestLib.Core where
 
+import Data.Functor.Identity
 import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
 import Test.QuickCheck as Q
 
 
 testChange :: forall a. (
-  Transformer a, Eq a, Show a
+  ProjectIn Identity a, Eq a, Show a
   ) => Params a -> Doc -> TextDocumentContentChangeEvent -> Property
 testChange = testChange' @a (const [])
 
 testChange' :: forall a. (
-  Transformer a, Eq a, Show a
+  ProjectIn Identity a, Eq a, Show a
   ) => ([TextDocumentContentChangeEvent] -> [Property]) -> Params a -> Doc -> TextDocumentContentChangeEvent -> Property
 testChange' extraProps params docLines change = conjoin ([
   -- Applying the change' returned from handleDiff to the projected before value gives expected projected value
@@ -28,9 +29,9 @@ testChange' extraProps params docLines change = conjoin ([
     -- Expected un-projected document after the change
     docLines' = applyChanges [change] docLines
 
-    (projectedBefore, transformer :: a) = project params docLines
-    (projectedAfter, reprojectedTransformer :: a) = project params docLines'
+    (projectedBefore, transformer :: a, _) = runIdentity $ project params docLines
+    (projectedAfter, reprojectedTransformer :: a, _) = runIdentity $ project params docLines'
 
-    (changes, transformer') = handleDiff params docLines change transformer
+    (changes, transformer') = runIdentity $ handleDiff params docLines change transformer
 
     afterFromChange' = applyChanges changes projectedBefore
