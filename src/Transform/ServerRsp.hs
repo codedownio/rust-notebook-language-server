@@ -21,12 +21,13 @@ import Transform.ServerRsp.Formatting
 import Transform.ServerRsp.Hover
 import Transform.Util
 import UnliftIO.MVar
+import Language.LSP.Transformer
 
 
 type ServerRspMethod m = SMethod (m :: Method 'ClientToServer 'Request)
 
 transformServerRsp :: (
-  TransformerMonad n, HasJSON (TResponseMessage m)
+  TransformerMonad tx n, Transformer tx, HasJSON (TResponseMessage m)
   ) => ServerRspMethod m -> MessageParams m -> TResponseMessage m -> n (TResponseMessage m)
 transformServerRsp meth initialParams msg = case msg ^. result of
   Left _err -> return msg
@@ -40,7 +41,7 @@ transformServerRsp meth initialParams msg = case msg ^. result of
 
 type ResponseResult m = Either ResponseError (MessageResult m)
 
-transformServerRsp' :: (TransformerMonad n) => ServerRspMethod m -> MessageParams m -> MessageResult m -> n (MessageResult m)
+transformServerRsp' :: (TransformerMonad tx n, Transformer tx) => ServerRspMethod m -> MessageParams m -> MessageResult m -> n (MessageResult m)
 
 transformServerRsp' SMethod_Initialize _initialParams result = do
   initializeResultVar <- asks transformerInitializeResult

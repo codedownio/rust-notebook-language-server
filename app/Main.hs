@@ -46,6 +46,7 @@ import Language.LSP.NotebookLanguageServer.Parsing
 import Language.LSP.NotebookLanguageServer.Process
 import Language.LSP.NotebookLanguageServer.RequestMap
 import Streams
+import Language.LSP.Notebook
 
 
 data Options = Options {
@@ -157,7 +158,7 @@ withMaybeShadowDir maybeTemplate cb = withSystemTempDirectory "rust-analyzer-sha
   cb dir
 
 handleStdin :: forall m. (
-  MonadLoggerIO m, MonadReader TransformerState m, MonadUnliftIO m, MonadFail m
+  MonadLoggerIO m, MonadReader (TransformerState RustNotebookTransformer) m, MonadUnliftIO m, MonadFail m
   ) => Handle -> MVar ClientRequestMap -> MVar ServerRequestMap -> m ()
 handleStdin wrappedIn clientReqMap serverReqMap = do
   (A.eitherDecode <$> liftIO (parseStream stdin)) >>= \case
@@ -185,7 +186,7 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
       liftIO $ writeToHandle wrappedIn $ A.encode msg
 
 readWrappedOut :: (
-  MonadUnliftIO m, MonadLoggerIO m, MonadReader TransformerState m, MonadFail m
+  MonadUnliftIO m, MonadLoggerIO m, MonadReader (TransformerState RustNotebookTransformer) m, MonadFail m
   ) => MVar ClientRequestMap -> MVar ServerRequestMap -> Handle -> (forall a. ToJSON a => a -> m ()) -> m b
 readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
   (A.eitherDecode <$> liftIO (parseStream wrappedOut)) >>= \case

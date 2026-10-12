@@ -69,12 +69,12 @@ isNotebook uri = case parseURIReference (T.unpack (getUri uri)) of
 
 -- * whenNotebookResult
 
-whenReverseLookupUri :: (TransformerMonad n, MonadLoggerIO n, HasUri a Uri) => a -> (DocumentState -> n a) -> n a
+whenReverseLookupUri :: (TransformerMonad tx n, Transformer tx, MonadLoggerIO n, HasUri a Uri) => a -> (DocumentState tx -> n a) -> n a
 whenReverseLookupUri params = whenReverseLookupUri' (params ^. uri) params
 
 -- | Note that this takes in server URIs and calls the callback with original URIs
 -- TODO: make this more efficient
-whenReverseLookupUri' :: (TransformerMonad n) => Uri -> a -> (DocumentState -> n a) -> n a
+whenReverseLookupUri' :: (TransformerMonad tx n, Transformer tx) => Uri -> a -> (DocumentState tx -> n a) -> n a
 whenReverseLookupUri' uri params cb = do
   txDocumentsVar <- asks transformerDocuments
   txDocuments <- readMVar txDocumentsVar
@@ -86,17 +86,17 @@ whenReverseLookupUri' uri params cb = do
 
 -- * TransformerMonad
 
-type TransformerMonad n = (
+type TransformerMonad tx n = (
   MonadLoggerIO n
-  , MonadReader TransformerState n
+  , MonadReader (TransformerState tx) n
   , MonadUnliftIO n
   , MonadFail n
   )
 
 -- * TransformerState
 
-data DocumentState = DocumentState {
-  transformer :: RustNotebookTransformer
+data DocumentState tx = DocumentState {
+  transformer :: tx
   , curLines :: Doc
   , curLines' :: Doc
   , origUri :: Uri
@@ -107,8 +107,8 @@ data DocumentState = DocumentState {
   , debouncedDidChange :: IO ()
   }
 
-data TransformerState = TransformerState {
-  transformerDocuments :: MVar (M.Map Text DocumentState)
+data TransformerState tx = TransformerState {
+  transformerDocuments :: MVar (M.Map Text (DocumentState tx))
   , transformerInitializeParams :: MVar (Maybe InitializeParams)
   , transformerInitializeResult :: MVar (Maybe InitializeResult)
   , transformerShadowDir :: FilePath
@@ -117,7 +117,7 @@ data TransformerState = TransformerState {
 
 -- * Transformers
 
-newTransformerState :: (MonadIO m) => FilePath -> Int -> m TransformerState
+newTransformerState :: (MonadIO m) => FilePath -> Int -> m (TransformerState tx)
 newTransformerState shadowDir didSaveDebouncePeriodMs = TransformerState
   <$> newMVar mempty
   <*> newMVar Nothing
@@ -125,12 +125,12 @@ newTransformerState shadowDir didSaveDebouncePeriodMs = TransformerState
   <*> pure shadowDir
   <*> pure didSaveDebouncePeriodMs
 
-lookupTransformer :: TransformerMonad m => Uri -> m (Maybe DocumentState)
+lookupTransformer :: (TransformerMonad tx m, Transformer tx) => Uri -> m (Maybe (DocumentState tx))
 lookupTransformer uri = do
   TransformerState {..} <- ask
   M.lookup (getUri uri) <$> readMVar transformerDocuments
 
-withTransformer :: (TransformerMonad n) => a -> (DocumentState -> n a) -> Uri -> n a
+withTransformer :: (TransformerMonad tx n, Transformer tx) => a -> (DocumentState tx -> n a) -> Uri -> n a
 withTransformer def cb uri = do
   lookupTransformer uri >>= \case
     Nothing -> do
@@ -138,7 +138,7 @@ withTransformer def cb uri = do
       return def
     Just tx -> cb tx
 
-modifyTransformer :: (TransformerMonad n) => a -> (DocumentState -> n (DocumentState, a)) -> Uri -> n a
+modifyTransformer :: (TransformerMonad tx n, Transformer tx) => a -> (DocumentState tx -> n (DocumentState tx, a)) -> Uri -> n a
 modifyTransformer def cb uri = do
   TransformerState {..} <- ask
   modifyMVar transformerDocuments $ \m -> case M.lookup (getUri uri) m of
@@ -149,7 +149,7 @@ modifyTransformer def cb uri = do
 
 -- * Checking server capabilities
 
-whenServerCapabilitiesSatisfy :: TransformerMonad n => (ServerCapabilities -> (Bool, a)) -> (a -> n ()) -> n ()
+whenServerCapabilitiesSatisfy :: (TransformerMonad tx n, Transformer tx) => (ServerCapabilities -> (Bool, a)) -> (a -> n ()) -> n ()
 whenServerCapabilitiesSatisfy cb action = do
   initializeResultVar <- asks transformerInitializeResult
   readMVar initializeResultVar >>= \case

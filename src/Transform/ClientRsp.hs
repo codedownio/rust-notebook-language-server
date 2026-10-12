@@ -12,11 +12,12 @@ import Data.String.Interpolate
 import Data.Time
 import Language.LSP.Protocol.Message
 import Transform.Util
+import Language.LSP.Transformer
 
 
 type ClientRspMethod m = SMethod (m :: Method 'ServerToClient 'Request)
 
-transformClientRsp :: (TransformerMonad n, HasJSON (TResponseMessage m)) => ClientRspMethod m -> TResponseMessage m -> n (TResponseMessage m)
+transformClientRsp :: (TransformerMonad tx n, Transformer tx, HasJSON (TResponseMessage m)) => ClientRspMethod m -> TResponseMessage m -> n (TResponseMessage m)
 transformClientRsp meth msg = do
   start <- liftIO getCurrentTime
   msg' <- transformClientRsp' meth msg
@@ -25,5 +26,5 @@ transformClientRsp meth msg = do
   return msg'
 
 
-transformClientRsp' :: (TransformerMonad n) => ClientRspMethod m -> TResponseMessage m -> n (TResponseMessage m)
+transformClientRsp' :: (TransformerMonad tx n, Transformer tx) => ClientRspMethod m -> TResponseMessage m -> n (TResponseMessage m)
 transformClientRsp' _meth msg = pure msg

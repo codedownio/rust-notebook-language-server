@@ -34,7 +34,7 @@ import Transform.Util
 import UnliftIO.MVar
 
 
-fixupHoverText :: (TransformerMonad n) => Hover -> n Hover
+fixupHoverText :: (TransformerMonad tx n, Transformer tx) => Hover -> n Hover
 fixupHoverText initialHover = do
   documentsMap <- ask >>= (readMVar . transformerDocuments)
   flip fix (initialHover, M.toList documentsMap) $ \loop args -> case args of
@@ -45,7 +45,7 @@ fixupHoverText initialHover = do
 
 type HoverContents = MarkupContent |? (MarkedString |? [MarkedString])
 
-fixupDocumentReferences :: forall n. MonadLogger n => Regex -> RustNotebookTransformer -> Rope -> HoverContents -> n HoverContents
+fixupDocumentReferences :: forall n tx. (MonadLogger n, Transformer tx) => Regex -> tx -> Rope -> HoverContents -> n HoverContents
 fixupDocumentReferences docRegex transformer _curLines (InL (MarkupContent k t)) = (InL . MarkupContent k) <$> (fixupDocumentReferences' docRegex transformer t)
 fixupDocumentReferences docRegex transformer _curLines (InR markedStrings) = (InR <$>) $ case markedStrings of
   InL ms -> InL <$> transformMarkedString ms
@@ -57,12 +57,12 @@ fixupDocumentReferences docRegex transformer _curLines (InR markedStrings) = (In
       t' <- fixupDocumentReferences' docRegex transformer (thing ^. value)
       return $ MarkedString $ InR (thing & set value t')
 
-fixupDocumentReferences' :: forall n. MonadLogger n => Regex -> RustNotebookTransformer -> Text -> n Text
+fixupDocumentReferences' :: forall n tx. (MonadLogger n, Transformer tx) => Regex -> tx -> Text -> n Text
 fixupDocumentReferences' docRegex transformer t =
   traverseOf ((regexing docRegex) . groups) (transformGroup transformer) t
 
   where
-    transformGroup :: RustNotebookTransformer -> [Text] -> n [Text]
+    transformGroup :: tx -> [Text] -> n [Text]
     transformGroup transformer orig@[(readMay . T.unpack) -> Just line, (readMay . T.unpack) -> Just ch] = do
       case untransformPosition transformer (Position (line - 1) (ch - 1)) of
         Nothing -> return orig

@@ -28,7 +28,7 @@ import UnliftIO.Concurrent
 type ClientReqMethod m = SMethod (m :: Method 'ClientToServer 'Request)
 
 
-transformClientReq :: (TransformerMonad n, HasJSON (TRequestMessage m)) => ClientReqMethod m -> TRequestMessage m -> n (TRequestMessage m)
+transformClientReq :: (TransformerMonad tx n, Transformer tx, HasJSON (TRequestMessage m)) => ClientReqMethod m -> TRequestMessage m -> n (TRequestMessage m)
 transformClientReq meth msg = do
   start <- liftIO getCurrentTime
   p' <- transformClientReq' meth (msg ^. params)
@@ -37,7 +37,7 @@ transformClientReq meth msg = do
   when (msg' /= msg) $ logDebugN [i|Transforming client req #{meth} in #{diffUTCTime stop start}: (#{A.encode msg} --> #{A.encode msg'})|]
   return msg'
 
-transformClientReq' :: forall m n. (TransformerMonad n) => ClientReqMethod m -> MessageParams m -> n (MessageParams m)
+transformClientReq' :: forall m n tx. (TransformerMonad tx n, Transformer tx) => ClientReqMethod m -> MessageParams m -> n (MessageParams m)
 
 transformClientReq' SMethod_Initialize params = do
   -- Store the non-modified params, so we can access the unmodified rootUri
@@ -80,9 +80,9 @@ transformClientReq' (SMethod_CustomMethod p) val = case sameSymbol p (Proxy @"ru
 transformClientReq' _ params = return params
 
 
-doTransformUriAndPosition :: forall m n a. (
-  TransformerMonad n, HasPosition (MessageParams m) Position, HasTextDocument (MessageParams m) a, HasUri a Uri
-  ) => MessageParams m -> DocumentState -> n (MessageParams m)
+doTransformUriAndPosition :: forall m n a tx. (
+  TransformerMonad tx n, Transformer tx, HasPosition (MessageParams m) Position, HasTextDocument (MessageParams m) a, HasUri a Uri
+  ) => MessageParams m -> DocumentState tx -> n (MessageParams m)
 doTransformUriAndPosition params' (DocumentState {transformer=tx, newUri}) = do
   let params = params' & set (textDocument . uri) newUri
   case transformPosition tx (params ^. position) of
@@ -91,9 +91,9 @@ doTransformUriAndPosition params' (DocumentState {transformer=tx, newUri}) = do
       return params
     Just pos' -> return $ set position pos' params
 
-doTransformUriAndRange :: forall m n a. (
-  TransformerMonad n, HasRange (MessageParams m) Range, HasTextDocument (MessageParams m) a, HasUri a Uri
-  ) => MessageParams m -> DocumentState -> n (MessageParams m)
+doTransformUriAndRange :: forall m n a tx. (
+  TransformerMonad tx n, Transformer tx, HasRange (MessageParams m) Range, HasTextDocument (MessageParams m) a, HasUri a Uri
+  ) => MessageParams m -> DocumentState tx -> n (MessageParams m)
 doTransformUriAndRange params' (DocumentState {transformer=tx, newUri}) = do
   let params = params' & set (textDocument . uri) newUri
   case transformRange tx (params ^. range) of
@@ -102,7 +102,7 @@ doTransformUriAndRange params' (DocumentState {transformer=tx, newUri}) = do
       return params
     Just pos' -> return $ set range pos' params
 
-doTransformUri :: forall m n a. (
-  TransformerMonad n, HasTextDocument (MessageParams m) a, HasUri a Uri
-  ) => MessageParams m -> DocumentState -> n (MessageParams m)
+doTransformUri :: forall m n a tx. (
+  TransformerMonad tx n, Transformer tx, HasTextDocument (MessageParams m) a, HasUri a Uri
+  ) => MessageParams m -> DocumentState tx -> n (MessageParams m)
 doTransformUri params' (DocumentState {newUri}) = return $ params' & set (textDocument . uri) newUri
