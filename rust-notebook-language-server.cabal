@@ -17,16 +17,6 @@ library
       Language.LSP.Notebook.HeadTailTransformer
       Language.LSP.Notebook.StripDirective
       Transform.ClientNot
-      Transform.ClientNot.DidSave
-      Transform.ClientReq
-      Transform.ClientRsp
-      Transform.Common
-      Transform.ServerNot
-      Transform.ServerReq
-      Transform.ServerRsp
-      Transform.ServerRsp.Formatting
-      Transform.ServerRsp.Hover
-      Transform.Util
   other-modules:
       Paths_rust_notebook_language_server
   hs-source-dirs:
@@ -54,15 +44,10 @@ library
     , containers
     , filepath
     , lens
-    , lens-regex-pcre
     , lsp-types >=2.0.0.1
     , monad-logger
     , mtl
-    , network-uri
     , notebook-language-server-core
-    , pcre-light
-    , random
-    , safe
     , string-interpolate
     , text
     , text-rope
