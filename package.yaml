@@ -38,17 +38,12 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
-  - aeson
-  - auto-update
   - containers
   - filepath
-  - lens
   - mtl
   - notebook-language-server-core
+  - pcre-light
   - text-rope
-  - time
-  - unliftio-core
-  - uuid
 
 executables:
   rust-notebook-language-server:
