@@ -12,9 +12,9 @@ import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
 import Test.Sandwich
 import Language.LSP.Notebook.HeadTailTransformer (dedent)
-import Transform.ServerRsp.Formatting
-import Transform.ServerRsp.Hover (mkDocRegex)
-import Transform.Util
+import Language.LSP.NotebookLanguageServer.Transform.ServerRsp.Formatting
+import Language.LSP.NotebookLanguageServer.Transform.ServerRsp.Hover (mkDocRegex)
+import Language.LSP.NotebookLanguageServer.Transform.Util
 
 
 spec :: TopSpec

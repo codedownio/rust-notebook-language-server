@@ -8,7 +8,7 @@ import qualified Data.Text as T
 import Language.LSP.Notebook
 import Language.LSP.Transformer
 import Test.Sandwich
-import Transform.ServerRsp.Hover
+import Language.LSP.NotebookLanguageServer.Transform.ServerRsp.Hover
 
 
 spec :: TopSpec
