@@ -33,6 +33,7 @@ rustNotebookConfig = NotebookConfig {
   , notebookConfigOnDocumentsChanged = updateLibRs
   , notebookConfigTransformInitialize = transformInitialize
   , notebookConfigCustomUriMethods = ["rust-analyzer/analyzerStatus"]
+  , notebookConfigIgnoreSymbol = const False
   , notebookConfigLanguageName = "rust"
   }
 
