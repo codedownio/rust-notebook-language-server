@@ -26,7 +26,7 @@ import Transform.Util
 -- 'unproject' answers 'Nothing' when the projection can't be undone for this document, which
 -- today means a cell with directive lines in it. Returning no edits leaves the cell alone,
 -- which beats handing back one with the user's @:dep@ lines dropped.
-untransformFormattingEdits :: DocumentState -> [TextEdit] -> [TextEdit]
+untransformFormattingEdits :: Transformer tx => DocumentState tx -> [TextEdit] -> [TextEdit]
 untransformFormattingEdits _ [] = []
 untransformFormattingEdits (DocumentState {transformer=tx, curLines, curLines'}) edits =
   case unproject tx formatted of

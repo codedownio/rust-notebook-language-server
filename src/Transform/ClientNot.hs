@@ -37,7 +37,7 @@ import UnliftIO.Directory
 type ClientNotMethod m = SMethod (m :: Method 'ClientToServer 'Notification)
 
 transformClientNot :: (
-  TransformerMonad n, HasJSON (TNotificationMessage m)
+  TransformerMonad RustNotebookTransformer n, HasJSON (TNotificationMessage m)
   ) => SendExtraNotificationFn n
     -> ClientNotMethod m
     -> TNotificationMessage m
@@ -51,7 +51,7 @@ transformClientNot sendExtraNotification meth msg = do
   return msg'
 
 transformClientNot' :: (
-  TransformerMonad n
+  TransformerMonad RustNotebookTransformer n
   ) => (forall (o :: Method 'ClientToServer 'Notification). ToJSON (TNotificationMessage o) => TNotificationMessage o -> n ())
     -> ClientNotMethod m
     -> MessageParams m

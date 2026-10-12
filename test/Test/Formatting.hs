@@ -95,7 +95,7 @@ spec = describe "Formatting" $ do
 
 
 -- | A 'DocumentState' as 'Transform.ClientNot' would have built it for this document.
-documentState :: FilePath -> T.Text -> DocumentState
+documentState :: FilePath -> T.Text -> DocumentState RustNotebookTransformer
 documentState name text = DocumentState {
   transformer = tx
   , curLines = ls
@@ -114,7 +114,7 @@ documentState name text = DocumentState {
 
 -- | A single edit replacing the whole shadow document, which is what a formatter that doesn't
 -- bother to diff would send back.
-replaceAll :: DocumentState -> T.Text -> TextEdit
+replaceAll :: DocumentState RustNotebookTransformer -> T.Text -> TextEdit
 replaceAll (DocumentState {curLines'}) = TextEdit (wholeRange curLines')
 
 wholeOf :: T.Text -> Range

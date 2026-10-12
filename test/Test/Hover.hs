@@ -14,7 +14,7 @@ import Transform.ServerRsp.Hover
 spec :: TopSpec
 spec = describe "Hover" $ do
   describe "fixes up document references" $ do
-    let (_projected, transformer, _) = runIdentity $ project transformerParams (listToDoc hoverLines)
+    let (_projected, transformer :: RustNotebookTransformer, _) = runIdentity $ project transformerParams (listToDoc hoverLines)
 
     it "Basic case" $ do
       fixupDocumentReferences' (mkDocRegex "main.ipynb") transformer "Defined at: main.ipynb:3:1"

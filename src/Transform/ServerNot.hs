@@ -15,9 +15,10 @@ import Language.LSP.Protocol.Lens
 import Language.LSP.Protocol.Message
 import Transform.Common
 import Transform.Util
+import Language.LSP.Transformer
 
 
-transformServerNot :: (TransformerMonad n, HasJSON (TNotificationMessage m)) => SMethod m -> TNotificationMessage m -> n (TNotificationMessage m)
+transformServerNot :: (TransformerMonad tx n, Transformer tx, HasJSON (TNotificationMessage m)) => SMethod m -> TNotificationMessage m -> n (TNotificationMessage m)
 transformServerNot meth msg = do
   start <- liftIO getCurrentTime
   p' <- transformServerNot' meth (msg ^. params)
@@ -27,7 +28,7 @@ transformServerNot meth msg = do
   return msg'
 
 
-transformServerNot' :: (TransformerMonad n) => SMethod m -> MessageParams m -> n (MessageParams m)
+transformServerNot' :: (TransformerMonad tx n, Transformer tx) => SMethod m -> MessageParams m -> n (MessageParams m)
 
 transformServerNot' SMethod_TextDocumentPublishDiagnostics params = whenReverseLookupUri params $ \(DocumentState {transformer=tx, ..}) -> do
   return $ params

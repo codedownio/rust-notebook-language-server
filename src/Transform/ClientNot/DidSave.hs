@@ -9,9 +9,10 @@ import qualified Data.Text.Rope as Rope
 import Language.LSP.Protocol.Message
 import Language.LSP.Protocol.Types
 import Transform.Util
+import Language.LSP.Transformer
 
 
-doDidSave :: TransformerMonad m => DocumentState -> SendExtraNotificationFn m -> m ()
+doDidSave :: (TransformerMonad tx m, Transformer tx) => DocumentState tx -> SendExtraNotificationFn m -> m ()
 doDidSave (DocumentState {..}) sendExtraNotification = do
   whenServerCapabilitiesSatisfy supportsWillSave $ \_ ->
     sendExtraNotification $ TNotificationMessage "2.0" SMethod_TextDocumentWillSave $ WillSaveTextDocumentParams {
