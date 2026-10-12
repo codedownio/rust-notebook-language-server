@@ -34,7 +34,7 @@ import UnliftIO.Exception
 import UnliftIO.Process
 import UnliftIO.Temporary (withSystemTempDirectory)
 
-import Transform.ClientNot
+import Language.LSP.NotebookLanguageServer.Transform.ClientNot
 import Language.LSP.NotebookLanguageServer.Transform.ClientReq
 import Language.LSP.NotebookLanguageServer.Transform.ClientRsp
 import Language.LSP.NotebookLanguageServer.Transform.ServerNot
@@ -47,6 +47,7 @@ import Language.LSP.NotebookLanguageServer.Process
 import Language.LSP.NotebookLanguageServer.RequestMap
 import Streams
 import Language.LSP.Notebook
+import Transform.Config
 
 
 data Options = Options {
@@ -178,7 +179,7 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
             Nothing -> return m
           transformClientReq meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
         Right (ClientToServerNot meth msg) ->
-          transformClientNot sendExtraNotification meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
+          transformClientNot rustNotebookConfig sendExtraNotification meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
   where
     sendExtraNotification :: SendExtraNotificationFn m
     sendExtraNotification msg = do
