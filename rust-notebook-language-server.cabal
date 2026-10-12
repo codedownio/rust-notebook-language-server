@@ -42,6 +42,7 @@ library
       FlexibleInstances
       LambdaCase
       ViewPatterns
+      MultiParamTypeClasses
       MultiWayIf
       TupleSections
       NumericUnderscores
@@ -93,6 +94,7 @@ executable rust-notebook-language-server
       FlexibleInstances
       LambdaCase
       ViewPatterns
+      MultiParamTypeClasses
       MultiWayIf
       TupleSections
       NumericUnderscores
@@ -143,6 +145,7 @@ test-suite rust-notebook-language-server-test
       FlexibleInstances
       LambdaCase
       ViewPatterns
+      MultiParamTypeClasses
       MultiWayIf
       TupleSections
       NumericUnderscores

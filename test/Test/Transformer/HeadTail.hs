@@ -2,6 +2,7 @@
 
 module Test.Transformer.HeadTail where
 
+import Data.Functor.Identity
 import Data.String.Interpolate
 import Data.Text.Rope (Rope)
 import qualified Data.Text.Rope as Rope
@@ -16,7 +17,7 @@ import TestLib.Generators
 spec :: TopSpec
 spec = describe "HeadTailTransformer" $ do
   it "works" $ do
-    let (ls, (HeadTailTransformer {})) = project (["fn main() {"], ["}"]) (listToDoc [[i|println!("hi")|]])
+    let (ls, (HeadTailTransformer {}), _) = runIdentity $ project (["fn main() {"], ["}"]) (listToDoc [[i|println!("hi")|]])
     ls `shouldBe` (listToDoc [
                       "fn main() {"
                       , [i|println!("hi")|]

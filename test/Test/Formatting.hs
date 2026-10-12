@@ -2,6 +2,7 @@
 
 module Test.Formatting where
 
+import Data.Functor.Identity
 import qualified Data.Text as T
 import Data.Text.Rope (Rope)
 import qualified Data.Text.Rope as Rope
@@ -109,7 +110,7 @@ documentState name text = DocumentState {
   where
     uri = filePathToUri name
     ls = Rope.fromText text
-    (ls', tx) = project (if isNotebook uri then transformerParams else idTransformerParams) ls
+    (ls', tx, _) = runIdentity $ project (if isNotebook uri then transformerParams else idTransformerParams) ls
 
 -- | A single edit replacing the whole shadow document, which is what a formatter that doesn't
 -- bother to diff would send back.
