@@ -26,10 +26,10 @@ import Language.LSP.Protocol.Message
 import Language.LSP.Protocol.Types
 import Language.LSP.Transformer
 import System.FilePath
-import Transform.ClientNot.DidSave
-import Transform.Common
-import Transform.ServerRsp.Hover (mkDocRegex)
-import Transform.Util
+import Language.LSP.NotebookLanguageServer.Transform.ClientNot.DidSave
+import Language.LSP.NotebookLanguageServer.Transform.Common
+import Language.LSP.NotebookLanguageServer.Transform.ServerRsp.Hover (mkDocRegex)
+import Language.LSP.NotebookLanguageServer.Transform.Util
 import UnliftIO.Concurrent
 import UnliftIO.Directory
 
