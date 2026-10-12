@@ -35,12 +35,12 @@ import UnliftIO.Process
 import UnliftIO.Temporary (withSystemTempDirectory)
 
 import Transform.ClientNot
-import Transform.ClientReq
-import Transform.ClientRsp
-import Transform.ServerNot
-import Transform.ServerReq
-import Transform.ServerRsp
-import Transform.Util
+import Language.LSP.NotebookLanguageServer.Transform.ClientReq
+import Language.LSP.NotebookLanguageServer.Transform.ClientRsp
+import Language.LSP.NotebookLanguageServer.Transform.ServerNot
+import Language.LSP.NotebookLanguageServer.Transform.ServerReq
+import Language.LSP.NotebookLanguageServer.Transform.ServerRsp
+import Language.LSP.NotebookLanguageServer.Transform.Util
 
 import Language.LSP.NotebookLanguageServer.Parsing
 import Language.LSP.NotebookLanguageServer.Process
