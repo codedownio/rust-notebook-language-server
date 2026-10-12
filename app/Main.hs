@@ -47,6 +47,7 @@ import Language.LSP.NotebookLanguageServer.Process
 import Language.LSP.NotebookLanguageServer.RequestMap
 import Streams
 import Language.LSP.Notebook
+import Language.LSP.NotebookLanguageServer.Config
 import Transform.Config
 
 
@@ -138,12 +139,13 @@ main = do
         }
 
   withMaybeShadowDir optShadowDirTemplate $ \maybeShadowDir -> do
-    transformerState <- newTransformerState maybeShadowDir optDidSaveDebouncePeriodMs
+    let config = rustNotebookConfig maybeShadowDir optDidSaveDebouncePeriodMs
+    transformerState <- newTransformerState
 
     flip runLoggingT logFn $ filterLogger logFilterFn $ flip runReaderT transformerState $
-      withAsync (readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout) $ \_wrappedOutAsync ->
+      withAsync (readWrappedOut config clientReqMap serverReqMap wrappedOut sendToStdout) $ \_wrappedOutAsync ->
         withAsync (readWrappedErr wrappedErr) $ \_wrappedErrAsync ->
-          withAsync (forever $ handleStdin wrappedIn clientReqMap serverReqMap) $ \_stdinAsync -> do
+          withAsync (forever $ handleStdin config wrappedIn clientReqMap serverReqMap) $ \_stdinAsync -> do
             waitForProcess p >>= \case
               ExitFailure n -> logErrorN [i|rust-analyzer subprocess exited with code #{n}|]
               ExitSuccess -> logInfoN [i|rust-analyzer subprocess exited successfully|]
@@ -160,8 +162,8 @@ withMaybeShadowDir maybeTemplate cb = withSystemTempDirectory "rust-analyzer-sha
 
 handleStdin :: forall m. (
   MonadLoggerIO m, MonadReader (TransformerState RustNotebookTransformer) m, MonadUnliftIO m, MonadFail m
-  ) => Handle -> MVar ClientRequestMap -> MVar ServerRequestMap -> m ()
-handleStdin wrappedIn clientReqMap serverReqMap = do
+  ) => NotebookConfig RustNotebookTransformer -> Handle -> MVar ClientRequestMap -> MVar ServerRequestMap -> m ()
+handleStdin config wrappedIn clientReqMap serverReqMap = do
   (A.eitherDecode <$> liftIO (parseStream stdin)) >>= \case
     Left err -> logErr [i|Couldn't decode incoming message: #{err}|]
     Right (x :: A.Value) -> do
@@ -177,9 +179,9 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
           modifyMVar_ clientReqMap $ \m -> case updateClientRequestMap m msgId (SMethodAndParams meth (msg ^. Lens.params)) of
             Just m' -> return m'
             Nothing -> return m
-          transformClientReq rustNotebookConfig meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
+          transformClientReq config meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
         Right (ClientToServerNot meth msg) ->
-          transformClientNot rustNotebookConfig sendExtraNotification meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
+          transformClientNot config sendExtraNotification meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
   where
     sendExtraNotification :: SendExtraNotificationFn m
     sendExtraNotification msg = do
@@ -188,8 +190,8 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
 
 readWrappedOut :: (
   MonadUnliftIO m, MonadLoggerIO m, MonadReader (TransformerState RustNotebookTransformer) m, MonadFail m
-  ) => MVar ClientRequestMap -> MVar ServerRequestMap -> Handle -> (forall a. ToJSON a => a -> m ()) -> m b
-readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
+  ) => NotebookConfig RustNotebookTransformer -> MVar ClientRequestMap -> MVar ServerRequestMap -> Handle -> (forall a. ToJSON a => a -> m ()) -> m b
+readWrappedOut config clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
   (A.eitherDecode <$> liftIO (parseStream wrappedOut)) >>= \case
     Left err -> logErr [i|Couldn't decode wrapped output: #{err}|]
     Right (x :: A.Value) -> do
@@ -207,7 +209,7 @@ readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
             Nothing -> return m
           sendToStdout (transformServerReq meth msg)
         Right (ServerToClientRsp meth initialParams msg) ->
-          transformServerRsp rustNotebookConfig meth initialParams msg >>= sendToStdout
+          transformServerRsp config meth initialParams msg >>= sendToStdout
 
 readWrappedErr :: MonadLoggerIO m => Handle -> m ()
 readWrappedErr wrappedErr = forever $ do
