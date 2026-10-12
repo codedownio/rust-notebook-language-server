@@ -42,9 +42,9 @@ import Transform.ServerReq
 import Transform.ServerRsp
 import Transform.Util
 
-import Parsing
-import Process
-import RequestMap
+import Language.LSP.NotebookLanguageServer.Parsing
+import Language.LSP.NotebookLanguageServer.Process
+import Language.LSP.NotebookLanguageServer.RequestMap
 import Streams
 
 

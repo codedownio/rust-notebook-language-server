@@ -16,7 +16,6 @@ library
       Language.LSP.Notebook
       Language.LSP.Notebook.HeadTailTransformer
       Language.LSP.Notebook.StripDirective
-      Language.LSP.Transformer
       Transform.ClientNot
       Transform.ClientNot.DidSave
       Transform.ClientReq
@@ -59,8 +58,8 @@ library
     , lsp-types >=2.0.0.1
     , monad-logger
     , mtl
-    , myers-diff
     , network-uri
+    , notebook-language-server-core
     , pcre-light
     , random
     , safe
@@ -76,9 +75,6 @@ library
 executable rust-notebook-language-server
   main-is: Main.hs
   other-modules:
-      Parsing
-      Process
-      RequestMap
       Streams
       Test
       Paths_rust_notebook_language_server
@@ -108,9 +104,8 @@ executable rust-notebook-language-server
     , lsp-types >=2.0.0.1
     , monad-logger
     , mtl
+    , notebook-language-server-core
     , optparse-applicative
-    , process
-    , retry
     , rust-notebook-language-server
     , safe
     , string-interpolate
@@ -158,6 +153,7 @@ test-suite rust-notebook-language-server-test
     , lsp-types >=2.0.0.1
     , monad-logger
     , myers-diff
+    , notebook-language-server-core
     , quickcheck-instances
     , rust-notebook-language-server
     , sandwich
