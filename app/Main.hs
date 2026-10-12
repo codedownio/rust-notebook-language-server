@@ -207,7 +207,7 @@ readWrappedOut clientReqMap serverReqMap wrappedOut sendToStdout = forever $ do
             Nothing -> return m
           sendToStdout (transformServerReq meth msg)
         Right (ServerToClientRsp meth initialParams msg) ->
-          transformServerRsp meth initialParams msg >>= sendToStdout
+          transformServerRsp rustNotebookConfig meth initialParams msg >>= sendToStdout
 
 readWrappedErr :: MonadLoggerIO m => Handle -> m ()
 readWrappedErr wrappedErr = forever $ do
