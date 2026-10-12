@@ -24,14 +24,15 @@ import UnliftIO.Directory
 import UnliftIO.MVar
 
 
-rustNotebookConfig :: NotebookConfig RustNotebookTransformer
-rustNotebookConfig = NotebookConfig {
-  notebookConfigTransformerParams = transformerParams
-  , notebookConfigIdTransformerParams = idTransformerParams
-  , notebookConfigMakeShadowDocument = makeShadowDocument
+rustNotebookConfig :: FilePath -> Int -> NotebookConfig RustNotebookTransformer
+rustNotebookConfig shadowDir didSaveDebounceMs = NotebookConfig {
+  notebookConfigHandles = const True
+  , notebookConfigDidSaveDebounceMs = Just didSaveDebounceMs
+  , notebookConfigTransformerParamsFor = \u -> if isNotebook u then transformerParams else idTransformerParams
+  , notebookConfigMakeShadowDocument = makeShadowDocument shadowDir
   , notebookConfigUnopenedUri = addExtensionToUri ".rs"
-  , notebookConfigOnDocumentsChanged = updateLibRs
-  , notebookConfigTransformInitialize = transformInitialize
+  , notebookConfigOnDocumentsChanged = updateLibRs shadowDir
+  , notebookConfigTransformInitialize = transformInitialize shadowDir
   , notebookConfigCustomUriMethods = ["rust-analyzer/analyzerStatus"]
   , notebookConfigIgnoreSymbol = const False
   , notebookConfigLanguageName = "rust"
@@ -39,34 +40,31 @@ rustNotebookConfig = NotebookConfig {
 
 -- | rust-analyzer gets pointed at the shadow crate rather than the notebook's directory, and
 -- we need didSave notifications to keep the crate on disk up to date.
-transformInitialize :: TransformerMonad RustNotebookTransformer n => InitializeParams -> n InitializeParams
-transformInitialize params = do
-  dir <- asks transformerShadowDir
-  pure $ params
-    & set rootPath (Just (InL (T.pack dir)))
-    & set rootUri (InL (filePathToUri dir))
-    & set (capabilities . textDocument . _Just . synchronization) (Just $ TextDocumentSyncClientCapabilities {
-                                                                      _dynamicRegistration = Just False
-                                                                      , _willSave = Just True
-                                                                      , _willSaveWaitUntil = Just False
-                                                                      , _didSave = Just True
-                                                                      })
+transformInitialize :: TransformerMonad RustNotebookTransformer n => FilePath -> InitializeParams -> n InitializeParams
+transformInitialize shadowDir params = pure $ params
+  & set rootPath (Just (InL (T.pack shadowDir)))
+  & set rootUri (InL (filePathToUri shadowDir))
+  & set (capabilities . textDocument . _Just . synchronization) (Just $ TextDocumentSyncClientCapabilities {
+                                                                    _dynamicRegistration = Just False
+                                                                    , _willSave = Just True
+                                                                    , _willSaveWaitUntil = Just False
+                                                                    , _didSave = Just True
+                                                                    })
 
-makeShadowDocument :: TransformerMonad RustNotebookTransformer n => Uri -> Doc -> n (Uri, FilePath, Regex)
-makeShadowDocument _origUri projected = do
-  TransformerState {transformerShadowDir} <- ask
+makeShadowDocument :: TransformerMonad RustNotebookTransformer n => FilePath -> Uri -> Doc -> n (Uri, FilePath, Regex)
+makeShadowDocument shadowDir _origUri projected = do
   identifier <- makeUUID' 15
-  let path = transformerShadowDir </> "src" </> identifier <.> "rs"
+  let path = shadowDir </> "src" </> identifier <.> "rs"
   createDirectoryIfMissing True (takeDirectory path)
   liftIO $ T.writeFile path (Rope.toText projected)
   pure (filePathToUri path, path, mkDocRegex (T.pack (identifier <.> "rs")))
 
-updateLibRs :: TransformerMonad RustNotebookTransformer m => m ()
-updateLibRs = do
+updateLibRs :: TransformerMonad RustNotebookTransformer m => FilePath -> m ()
+updateLibRs shadowDir = do
   TransformerState {..} <- ask
   docs <- readMVar transformerDocuments
   let identifiers = [dropExtension (takeFileName newPath) | DocumentState {..} <- fmap snd (M.toList docs)]
   let libRsContent = T.intercalate "\n" [T.pack ("mod " <> x <> ";") | x <- identifiers]
   logInfoN [i|libRsContent: #{libRsContent}|]
-  liftIO $ createDirectoryIfMissing True (transformerShadowDir </> "src")
-  liftIO $ T.writeFile (transformerShadowDir </> "src" </> "lib.rs") libRsContent
+  liftIO $ createDirectoryIfMissing True (shadowDir </> "src")
+  liftIO $ T.writeFile (shadowDir </> "src" </> "lib.rs") libRsContent
