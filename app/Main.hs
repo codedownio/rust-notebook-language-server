@@ -177,7 +177,7 @@ handleStdin wrappedIn clientReqMap serverReqMap = do
           modifyMVar_ clientReqMap $ \m -> case updateClientRequestMap m msgId (SMethodAndParams meth (msg ^. Lens.params)) of
             Just m' -> return m'
             Nothing -> return m
-          transformClientReq meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
+          transformClientReq rustNotebookConfig meth msg >>= liftIO . writeToHandle wrappedIn . A.encode
         Right (ClientToServerNot meth msg) ->
           transformClientNot rustNotebookConfig sendExtraNotification meth msg >>= (liftIO . writeToHandle wrappedIn . A.encode)
   where
