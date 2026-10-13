@@ -1,5 +1,10 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.6.0
+
+* Map code action edits back to the notebook instead of the shadow file
+* Transform codeLens/resolve, so lens titles that the server defers resolve correctly
+
 ## 0.2.5.0
 
 * Support textDocument/formatting, textDocument/onTypeFormatting and textDocument/inlayHint
