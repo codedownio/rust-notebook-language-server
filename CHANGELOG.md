@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.6.1
+
+* Untransform workspace/applyEdit, which named the shadow document and so was refused by the client
+
 ## 0.2.6.0
 
 * Map code action edits back to the notebook instead of the shadow file
