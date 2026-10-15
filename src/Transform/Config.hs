@@ -28,6 +28,7 @@ rustNotebookConfig :: FilePath -> Int -> NotebookConfig RustNotebookTransformer
 rustNotebookConfig shadowDir didSaveDebounceMs = NotebookConfig {
   notebookConfigHandles = const True
   , notebookConfigDidSaveDebounceMs = Just didSaveDebounceMs
+  , notebookConfigHandlesFormatting = True
   , notebookConfigTransformerParamsFor = \u -> if isNotebook u then transformerParams else idTransformerParams
   , notebookConfigMakeShadowDocument = makeShadowDocument shadowDir
   , notebookConfigUnopenedUri = addExtensionToUri ".rs"

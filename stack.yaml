@@ -13,7 +13,7 @@ system-ghc: true
 
 extra-deps:
 - git: https://github.com/codedownio/notebook-language-server-core.git
-  commit: cb55077c20b22919956d0fcfa4287c5cb82c8fa2
+  commit: 244731900dee065cbf794ba74294f3a0f55c74fd
 
 # - language-rust-0.2.0.27
 
