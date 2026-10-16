@@ -40,17 +40,19 @@
           tar -czvf $out/$name.tar.gz -C to_zip .
         '';
 
+        devShellInputs = with pkgs; [
+          haskell.compiler.ghc9124
+
+          pcre
+          zlib
+        ];
+
       in
         {
           devShells = {
             default = pkgs.mkShell {
               NIX_PATH = "nixpkgs=${pkgs.path}";
-              buildInputs = with pkgs; [
-                haskell.compiler.ghc9124
-
-                pcre
-                zlib
-              ];
+              buildInputs = devShellInputs;
             };
           };
 
@@ -87,6 +89,15 @@
               (echo "$(ldd ${dynamic}/bin/rust-notebook-language-server)" | grep libgmp) && exit 1
 
               exit 0
+            '';
+
+            gcroots = pkgs.writeText "rust-notebook-language-server-gc-roots" ''
+              ${pkgs.symlinkJoin {
+                name = "rust-notebook-language-server-deps";
+                paths = dynamic.buildInputs ++ dynamic.nativeBuildInputs
+                     ++ static.buildInputs ++ static.nativeBuildInputs
+                     ++ devShellInputs;
+              }}
             '';
 
             nixpkgsPath = pkgs.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgs.path}";
