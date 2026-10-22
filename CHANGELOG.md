@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.7.1
+
+* Fix textDocument/selectionRange answering nothing, by cutting a selection range chain where it leaves the cell
+
 ## 0.2.7.0
 
 * Transform textDocument/selectionRange, textDocument/semanticTokens and the goto family, which reached the client in shadow coordinates
