@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Test.Hover where
+module Test.Hover (tests, main) where
 
 import Data.Functor.Identity
 import Data.String.Interpolate
@@ -11,8 +11,8 @@ import Test.Sandwich
 import Language.LSP.NotebookLanguageServer.Transform.ServerRsp.Hover
 
 
-spec :: TopSpec
-spec = describe "Hover" $ do
+tests :: TopSpec
+tests = describe "Hover" $ do
   describe "fixes up document references" $ do
     let (_projected, transformer :: RustNotebookTransformer, _) = runIdentity $ project transformerParams (listToDoc hoverLines)
 
@@ -38,4 +38,4 @@ hoverLines = [
   ]
 
 main :: IO ()
-main = runSandwichWithCommandLineArgs defaultOptions spec
+main = runSandwichWithCommandLineArgs defaultOptions tests

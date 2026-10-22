@@ -4,7 +4,7 @@
 -- | The code action response path, run through the real 'RustNotebookTransformer' rather than a
 -- stand-in. rust-analyzer answers in the shadow document's coordinates, and the shadow document
 -- is the notebook's lines wrapped in @fn main() {@, so everything it says is a line too low.
-module Test.CodeAction (spec, main) where
+module Test.CodeAction (tests, main) where
 
 import Control.Monad.IO.Class
 import Control.Monad.Logger
@@ -19,8 +19,8 @@ import TestLib.Transformers
 import Transform.Config
 
 
-spec :: TopSpec
-spec = describe "CodeAction" $ do
+tests :: TopSpec
+tests = describe "CodeAction" $ do
   describe "textDocument/codeAction" $ do
     -- "Insert explicit type `f64`" on `let pi = 3.14;` came back with the edit on the line
     -- below, so the text landed on the following line of the cell.
@@ -165,4 +165,4 @@ plainFileLines = [
   ]
 
 main :: IO ()
-main = runSandwichWithCommandLineArgs defaultOptions spec
+main = runSandwichWithCommandLineArgs defaultOptions tests

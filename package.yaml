@@ -80,6 +80,7 @@ tests:
     - -with-rtsopts=-N
     - -O2
     - -W
+    build-tools: sandwich:sandwich-discover
     dependencies:
     - containers
     - exceptions

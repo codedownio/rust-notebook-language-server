@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Test.Transformer.StripDirective where
+module Test.Transformer.StripDirective (tests, main) where
 
 import Data.Functor.Identity
 import Language.LSP.Notebook.StripDirective
@@ -9,8 +9,8 @@ import Language.LSP.Transformer
 import Test.Sandwich
 
 
-spec :: TopSpec
-spec = describe "StripDirective" $ do
+tests :: TopSpec
+tests = describe "StripDirective" $ do
   it "strips out :dep directives" $ do
     let (ls, ed@(StripDirective _ affectedLines), _) = runIdentity $ project (SDParams True) (listToDoc ["let foo = 42", ":dep rand"])
     ls `shouldBe` (listToDoc ["let foo = 42", ""])
@@ -21,4 +21,4 @@ spec = describe "StripDirective" $ do
 
 
 main :: IO ()
-main = runSandwichWithCommandLineArgs defaultOptions spec
+main = runSandwichWithCommandLineArgs defaultOptions tests

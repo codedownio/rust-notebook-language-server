@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Test.Formatting where
+module Test.Formatting (tests, main) where
 
 import Data.Functor.Identity
 import qualified Data.Text as T
@@ -17,8 +17,8 @@ import Language.LSP.NotebookLanguageServer.Transform.ServerRsp.Hover (mkDocRegex
 import Language.LSP.NotebookLanguageServer.Transform.Util
 
 
-spec :: TopSpec
-spec = describe "Formatting" $ do
+tests :: TopSpec
+tests = describe "Formatting" $ do
   describe "untransformFormattingEdits" $ do
     it "passes edits through for a plain .rs file" $ do
       let ds = documentState "/tmp/test.rs" "fn main(){}"
@@ -125,4 +125,4 @@ wholeRange doc = Range (Position 0 0) (Position (fromIntegral l) (fromIntegral c
   where Rope.Position l c = Rope.lengthAsPosition doc
 
 main :: IO ()
-main = runSandwichWithCommandLineArgs defaultOptions spec
+main = runSandwichWithCommandLineArgs defaultOptions tests

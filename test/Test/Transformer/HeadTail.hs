@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Test.Transformer.HeadTail where
+module Test.Transformer.HeadTail (tests, main) where
 
 import Data.Functor.Identity
 import Data.String.Interpolate
@@ -14,8 +14,8 @@ import TestLib.Core
 import TestLib.Generators
 
 
-spec :: TopSpec
-spec = describe "HeadTailTransformer" $ do
+tests :: TopSpec
+tests = describe "HeadTailTransformer" $ do
   it "works" $ do
     let (ls, (HeadTailTransformer {}), _) = runIdentity $ project (["fn main() {"], ["}"]) (listToDoc [[i|println!("hi")|]])
     ls `shouldBe` (listToDoc [
@@ -44,4 +44,4 @@ format!("Hello {}", "world");
 |]
 
 main :: IO ()
-main = runSandwichWithCommandLineArgs defaultOptions spec
+main = runSandwichWithCommandLineArgs defaultOptions tests
