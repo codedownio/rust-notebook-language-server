@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.7.0
+
+* Transform textDocument/selectionRange, textDocument/semanticTokens and the goto family, which reached the client in shadow coordinates
+
 ## 0.2.6.1
 
 * Untransform workspace/applyEdit, which named the shadow document and so was refused by the client
