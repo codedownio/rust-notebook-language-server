@@ -100,6 +100,7 @@ test-suite rust-notebook-language-server-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Test.CodeAction
       Test.Formatting
       Test.Hover
       Test.Transformer.HeadTail
@@ -107,6 +108,7 @@ test-suite rust-notebook-language-server-test
       TestLib.Common
       TestLib.Core
       TestLib.Generators
+      TestLib.Transformers
       TestLib.Util
       Paths_rust_notebook_language_server
   hs-source-dirs:
@@ -130,9 +132,11 @@ test-suite rust-notebook-language-server-test
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , containers
     , exceptions
     , lsp-types >=2.0.0.1
     , monad-logger
+    , mtl
     , myers-diff
     , notebook-language-server-core
     , quickcheck-instances

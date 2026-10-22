@@ -1,6 +1,7 @@
 
 import Test.Sandwich
 
+import qualified Test.CodeAction
 import qualified Test.Formatting
 import qualified Test.Hover
 
@@ -10,6 +11,7 @@ import qualified Test.Transformer.StripDirective
 
 spec :: TopSpec
 spec = do
+  Test.CodeAction.spec
   Test.Formatting.spec
   Test.Hover.spec
 

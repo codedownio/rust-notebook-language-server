@@ -81,7 +81,9 @@ tests:
     - -O2
     - -W
     dependencies:
+    - containers
     - exceptions
+    - mtl
     - myers-diff
     - notebook-language-server-core
     - QuickCheck
