@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.8.0
+
+* Transform textDocument/rename, prepareRename, references, signatureHelp and declaration, which reached the server naming the notebook
+
 ## 0.2.7.1
 
 * Fix textDocument/selectionRange answering nothing, by cutting a selection range chain where it leaves the cell
