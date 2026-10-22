@@ -100,6 +100,7 @@ test-suite rust-notebook-language-server-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Test
       Test.CodeAction
       Test.Formatting
       Test.Hover
@@ -129,6 +130,8 @@ test-suite rust-notebook-language-server-test
       NumericUnderscores
       TypeApplications
   ghc-options: -Wunused-packages -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N -O2 -W
+  build-tool-depends:
+      sandwich:sandwich-discover
   build-depends:
       QuickCheck
     , base >=4.7 && <5
