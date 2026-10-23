@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.9.0
+
+* Transform workspace/symbol answers, which named the shadow document instead of the notebook
+
 ## 0.2.8.0
 
 * Transform textDocument/rename, prepareRename, references, signatureHelp and declaration, which reached the server naming the notebook
