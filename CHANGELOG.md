@@ -1,5 +1,10 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.10.0
+
+* Recognize the shadow document in an answer however the server escaped its path
+* Rewrite the shadow document's name and line inside a hover's own text, which until now kept the shadow document's name
+
 ## 0.2.9.0
 
 * Transform workspace/symbol answers, which named the shadow document instead of the notebook
