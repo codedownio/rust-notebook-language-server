@@ -31,6 +31,8 @@
         flakeAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform.hixProject compiler-nix-name).flake {};
         flakeStaticAarch64Linux = (pkgs.pkgsCross.aarch64-multiplatform-musl.hixProject compiler-nix-name).flake {};
 
+        aarch64LinuxExe = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+
         packageForGitHub' = systemToUse: rnls: pkgs.runCommand "rust-notebook-language-server-${rnls.version}-${systemToUse}" {} ''
           name="rust-notebook-language-server-${rnls.version}-${systemToUse}"
 
@@ -65,7 +67,7 @@
             dynamic = flake.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             darwin = flakeDarwin.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
             aarch64Linux = let
-              executable = flakeAarch64Linux.packages."rust-notebook-language-server:exe:rust-notebook-language-server";
+              executable = aarch64LinuxExe;
             in linux-dynamic-bundler.lib.bundle {
               inherit pkgs;
               binaryDrv = executable;
@@ -96,6 +98,7 @@
                 name = "rust-notebook-language-server-deps";
                 paths = dynamic.buildInputs ++ dynamic.nativeBuildInputs
                      ++ static.buildInputs ++ static.nativeBuildInputs
+                     ++ aarch64LinuxExe.buildInputs ++ aarch64LinuxExe.nativeBuildInputs
                      ++ devShellInputs;
               }}
             '';
