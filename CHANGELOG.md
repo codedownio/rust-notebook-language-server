@@ -1,5 +1,10 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.11.0
+
+* Transform the call and type hierarchies, whose answers named the shadow document and so couldn't be followed
+* Replace a document symbol we can't place with its children, instead of dropping both
+
 ## 0.2.10.0
 
 * Recognize the shadow document in an answer however the server escaped its path
