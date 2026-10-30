@@ -108,6 +108,8 @@
               }}
             '';
 
+            tests = flake.packages."rust-notebook-language-server:test:rust-notebook-language-server-test";
+
             nixpkgsPath = pkgs.writeShellScriptBin "nixpkgsPath.sh" "echo -n ${pkgs.path}";
           });
 
