@@ -1,5 +1,5 @@
 name:                rust-notebook-language-server
-version:             0.2.11.0
+version:             0.2.12.0
 
 extra-source-files:
 - README.md

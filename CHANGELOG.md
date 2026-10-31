@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.12.0
+
+* Transform textDocument/diagnostic (pull diagnostic requests).
+
 ## 0.2.11.0
 
 * Transform the call and type hierarchies, whose answers named the shadow document and so couldn't be followed
