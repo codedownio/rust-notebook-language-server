@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.13.0
+
+* Transform textDocument/documentLink, so a link in a cell points at the notebook rather than the shadow document
+
 ## 0.2.12.0
 
 * Transform textDocument/diagnostic (pull diagnostic requests).
