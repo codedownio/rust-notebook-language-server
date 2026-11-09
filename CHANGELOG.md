@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.14.0
+
+* Transform textDocument/foldingRange, so a cell's folds land on the notebook's lines
+
 ## 0.2.13.0
 
 * Transform textDocument/documentLink, so a link in a cell points at the notebook rather than the shadow document
