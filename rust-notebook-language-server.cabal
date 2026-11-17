@@ -104,6 +104,7 @@ test-suite rust-notebook-language-server-test
       Test.CodeAction
       Test.Formatting
       Test.Hover
+      Test.Initialize
       Test.SelectionRange
       Test.Transformer.HeadTail
       Test.Transformer.StripDirective

@@ -45,6 +45,7 @@ transformInitialize :: TransformerMonad RustNotebookTransformer n => FilePath ->
 transformInitialize shadowDir params = pure $ params
   & set rootPath (Just (InL (T.pack shadowDir)))
   & set rootUri (InL (filePathToUri shadowDir))
+  & over (workspaceFolders . _Just) (const (InL [WorkspaceFolder (filePathToUri shadowDir) (T.pack (takeFileName shadowDir))]))
   & set (capabilities . textDocument . _Just . synchronization) (Just $ TextDocumentSyncClientCapabilities {
                                                                     _dynamicRegistration = Just False
                                                                     , _willSave = Just True
