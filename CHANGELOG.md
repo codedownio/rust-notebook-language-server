@@ -1,5 +1,9 @@
 # Changelog for rust-notebook-language-server
 
+## 0.2.15.0
+
+* Rewrite the client's workspaceFolders to the shadow crate, as rootUri already is
+
 ## 0.2.14.0
 
 * Transform textDocument/foldingRange, so a cell's folds land on the notebook's lines
